@@ -49,7 +49,6 @@ CREATE TABLE files (
     kind            TEXT        NOT NULL,
     size_bytes      INTEGER     NOT NULL,
     mod_time        TIMESTAMP   NOT NULL,
-    seen_generation INTEGER     NOT NULL,
     missing         INTEGER     NOT NULL DEFAULT 0,
 
     UNIQUE (dir_id, name)

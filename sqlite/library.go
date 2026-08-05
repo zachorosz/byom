@@ -234,7 +234,7 @@ func (s *LibraryStore) SyncDir(ctx context.Context, payload library.SyncPayload)
 		return uuid.Nil, err
 	}
 
-	if err := upsertFiles(ctx, tx, payload.Generation, dirID, payload.Changed); err != nil {
+	if err := upsertFiles(ctx, tx, dirID, payload.Changed); err != nil {
 		return uuid.Nil, err
 	}
 
@@ -244,7 +244,7 @@ func (s *LibraryStore) SyncDir(ctx context.Context, payload library.SyncPayload)
 	return dirID, nil
 }
 
-func upsertFiles(ctx context.Context, tx *sql.Tx, gen int64, dirID uuid.UUID, files []library.File) error {
+func upsertFiles(ctx context.Context, tx *sql.Tx, dirID uuid.UUID, files []library.File) error {
 	if len(files) == 0 {
 		return nil
 	}
@@ -256,17 +256,16 @@ func upsertFiles(ctx context.Context, tx *sql.Tx, gen int64, dirID uuid.UUID, fi
 		if id == uuid.Nil {
 			id, _ = uuid.NewV7()
 		}
-		rows[i] = "(?, ?, ?, ?, ?, ?, ?)"
-		args = append(args, id, dirID, f.Name, f.Kind, f.Size, f.ModTime, gen)
+		rows[i] = "(?, ?, ?, ?, ?, ?)"
+		args = append(args, id, dirID, f.Name, f.Kind, f.Size, f.ModTime)
 	}
 
-	stmt := `INSERT INTO files (id, dir_id, name, kind, size_bytes, mod_time, seen_generation)
+	stmt := `INSERT INTO files (id, dir_id, name, kind, size_bytes, mod_time)
 		VALUES ` + strings.Join(rows, ",") + `
 		ON CONFLICT (dir_id, name) DO UPDATE SET 
 			kind = excluded.kind,
 			size_bytes = excluded.size_bytes,
 			mod_time = excluded.mod_time,
-			seen_generation = excluded.seen_generation,
 			missing = 0
 	`
 	_, err := tx.ExecContext(ctx, stmt, args...)
