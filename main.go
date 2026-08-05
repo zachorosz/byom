@@ -159,7 +159,7 @@ type walkEntry struct {
 }
 
 type prefixedEntry struct {
-	walkEntry
+	fs.DirEntry
 	prefix string
 }
 
@@ -268,7 +268,13 @@ func (dm *discMerger) process(res walkResult) error {
 
 	// merge discs into this parent
 	for _, disc := range discs {
-		res.files = append(res.files, disc.files...)
+		discName := filepath.Base(disc.dir)
+		for _, f := range disc.files {
+			res.files = append(res.files, walkEntry{
+				DirEntry: prefixedEntry{DirEntry: f.DirEntry, prefix: discName},
+				kind:     f.kind,
+			})
+		}
 	}
 
 	return dm.emit(res)
@@ -357,6 +363,7 @@ func computeChangeset(
 		case err == nil:
 			cur := library.File{
 				Name:    name,
+				Kind:    f.kind,
 				Size:    info.Size(),
 				ModTime: info.ModTime(),
 			}
