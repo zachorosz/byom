@@ -1,4 +1,4 @@
-package library
+package storage
 
 import "errors"
 
