@@ -1,5 +1,5 @@
 -- +goose Up
-CREATE TABLE storages (
+CREATE TABLE locations (
     id              TEXT    PRIMARY KEY,
     uri             TEXT    NOT NULL UNIQUE,
     scan_generation INTEGER NOT NULL DEFAULT 0,
@@ -8,7 +8,7 @@ CREATE TABLE storages (
 
 CREATE TABLE scans (
     id          TEXT        PRIMARY KEY,
-    storage_id  TEXT        NOT NULL REFERENCES storages(id) ON DELETE CASCADE,
+    location_id TEXT        NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
     generation  INTEGER     NOT NULL,
     state       TEXT        NOT NULL DEFAULT 'running'
                             CHECK (state IN ('running', 'done', 'failed', 'aborted')),
@@ -19,7 +19,7 @@ CREATE TABLE scans (
 
 CREATE TABLE dirs (
     id                  TEXT    PRIMARY KEY,
-    storage_id          TEXT    NOT NULL REFERENCES storages(id) ON DELETE CASCADE,
+    location_id         TEXT    NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
     relpath             TEXT    NOT NULL,
     seen_generation     INTEGER NOT NULL,
     missing             INTEGER NOT NULL DEFAULT 0,
@@ -32,11 +32,11 @@ CREATE TABLE dirs (
     dirty               INTEGER NOT NULL DEFAULT 0,
     locked_generation   INTEGER,
 
-    UNIQUE (storage_id, relpath)
+    UNIQUE (location_id, relpath)
 );
 
 -- Sweep query: active dirs not seen in the current generation.
-CREATE INDEX idx_dirs_sweep ON dirs(storage_id, seen_generation)
+CREATE INDEX idx_dirs_sweep ON dirs(location_id, seen_generation)
     WHERE missing = 0;
 
 CREATE INDEX idx_dirs_parse_queue ON dirs(id) 
@@ -58,4 +58,4 @@ CREATE TABLE files (
 DROP TABLE files;
 DROP TABLE dirs;
 DROP TABLE scans;
-DROP TABLE storages;
+DROP TABLE locations;

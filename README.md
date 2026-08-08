@@ -4,9 +4,9 @@ Status: proof of concept. Currently exploratory / architecture validation code.
 
 ## How it works
 
-- `storages` - a root filesystem to scan (e.g. a music library path).
-- `scans` - one run of the walker over a storage, tagged with a monotonically increasing `generation` counter.
-- `dirs` - every directory seen during any scan, keyed by `(storage_id, relpath)`. Tracks `seen_generation` (last scan that visited it), mark/sweep status (`missing` flag), and a separate `dirty` flag + `locked_generation` (parse queue management / parse lock).
+- `locations` - a root filesystem to scan (e.g. a music library path).
+- `scans` - one run of the walker over a location, tagged with a monotonically increasing `generation` counter.
+- `dirs` - every directory seen during any scan, keyed by `(location_id, relpath)`. Tracks `seen_generation` (last scan that visited it), mark/sweep status (`missing` flag), and a separate `dirty` flag + `locked_generation` (parse queue management / parse lock).
 - `files` - files within a dir.
 
 ## Pipeline
