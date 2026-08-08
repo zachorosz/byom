@@ -3,6 +3,7 @@ module github.com/zachorosz/byom
 go 1.26.5
 
 require (
+	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/pressly/goose/v3 v3.27.3
 	golang.org/x/sync v0.22.0
