@@ -3,35 +3,38 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"flag"
 	"log/slog"
 	"os"
 	"os/signal"
-	"runtime"
-
-	"golang.org/x/sync/errgroup"
 
 	"github.com/google/uuid"
 
+	"github.com/zachorosz/byom/images"
 	"github.com/zachorosz/byom/metadata"
 	"github.com/zachorosz/byom/scan"
 	"github.com/zachorosz/byom/sqlite"
 	"github.com/zachorosz/byom/storage"
 )
 
-func newUUID() uuid.UUID {
-	id, _ := uuid.NewV7()
-	return id
-}
+var (
+	debug = flag.Bool("debug", false, "Enable debug logging")
+)
 
 func main() {
+	flag.Parse()
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	db := mustSetupDB(ctx, "tmp/byom.db")
+	logger := setupLogger(*debug)
+
+	db := mustSetupDB(ctx, "tmp/byom.db", logger)
 	defer db.Close()
 
 	loc := storage.Location{
-		ID:        newUUID(),
+		ID:        uuid.Must(uuid.NewV7()),
 		URI:       "file:///mnt/music/Library",
 		Available: true,
 	}
@@ -41,74 +44,78 @@ func main() {
 		 ON CONFLICT DO UPDATE SET uri=excluded.uri
 		 RETURNING id`,
 		loc.ID, loc.URI).Scan(&loc.ID); err != nil {
-		slog.Error("seed location failed", slog.Any("error", err))
+		logger.Error("seed location failed", slog.Any("error", err))
 		os.Exit(1)
 	}
 
 	scanStore := sqlite.NewScanStore(db)
 	parseQueueStore := sqlite.NewParseQueueStore(db)
 	locations := sqlite.NewLocationStore(db)
+	imageStore, err := images.NewStore(ctx, "tmp", sqlite.NewImageIndex(db))
+	if err != nil {
+		logger.Error("init image store failed", slog.Any("error", err))
+		os.Exit(1)
+	}
 
-	toParse := make(chan metadata.ClaimedDir, 100)
-	parsed := make(chan metadata.ParseResult, 50)
+	importer := &metadata.Importer{Library: sqlite.NewLibraryStore(db)}
 
-	dispatcherGroup, dispatcherCtx := errgroup.WithContext(ctx)
-	dispatcher := metadata.NewParseDispatcher(parseQueueStore, toParse)
-	dispatcherGroup.Go(func() error { return dispatcher.Run(dispatcherCtx) })
+	pipeline := &metadata.Pipeline{
+		Store:     parseQueueStore,
+		Locations: locations,
+		Images:    imageStore,
+		Logger:    logger,
+		OnResult:  importer.Import,
+	}
 
-	parserPool := metadata.StartParserPool(ctx, runtime.NumCPU(), parseQueueStore, locations, toParse, parsed)
-
-	// TODO: do something with parsed data
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case res, ok := <-parsed:
-				if !ok {
-					return
-				}
-				slog.Info("handled parse result", slog.String("dir_id", res.DirID.String()))
-			}
-		}
-	}()
+	pipelineErr := make(chan error, 1)
+	go func() { pipelineErr <- pipeline.Run(ctx) }()
 
 	root, err := loc.Root()
 	if err != nil {
-		slog.Error("resolve location root failed", slog.Any("error", err))
+		logger.Error("resolve location root failed", slog.Any("error", err))
 		os.Exit(1)
 	}
 
 	scanner := &scan.Scanner{
 		Store:   scanStore,
 		Workers: 4,
-		OnDirty: dispatcher.Wake,
+		OnDirty: pipeline.Wake,
 	}
 	if err := scanner.Scan(ctx, os.DirFS(root), loc); err != nil {
-		slog.Error("scan failed", slog.Any("error", err), slog.String("location_id", loc.ID.String()))
+		logger.Error("scan failed", slog.Any("error", err), slog.String("location_id", loc.ID.String()))
 	} else {
-		slog.Info("scan complete!", slog.String("location_id", loc.ID.String()))
+		logger.Info("scan complete!", slog.String("location_id", loc.ID.String()))
 	}
 
 	<-ctx.Done()
 
-	if err := dispatcherGroup.Wait(); err != nil {
-		slog.Warn("parse dispatcher failed", slog.Any("error", err))
-	}
-	if err := parserPool.Wait(); err != nil {
-		slog.Warn("parser pool failed", slog.Any("error", err))
+	if err := <-pipelineErr; err != nil && !errors.Is(err, context.Canceled) {
+		logger.Warn("parse pipeline failed", slog.Any("error", err))
 	}
 }
 
-func mustSetupDB(ctx context.Context, dsn string) *sql.DB {
+func mustSetupDB(ctx context.Context, dsn string, logger *slog.Logger) *sql.DB {
 	db, err := sqlite.Open(dsn)
 	if err != nil {
-		slog.Error("open db failed", slog.Any("error", err), slog.String("dsn", dsn))
+		logger.Error("open db failed", slog.Any("error", err), slog.String("dsn", dsn))
 		os.Exit(1)
 	}
-	if err := sqlite.Migrate(ctx, db, slog.Default()); err != nil {
-		slog.Error("db migrations failed", slog.Any("error", err))
+	if err := sqlite.Migrate(ctx, db, logger); err != nil {
+		logger.Error("db migrations failed", slog.Any("error", err))
 		os.Exit(1)
 	}
 	return db
+}
+
+func setupLogger(debug bool) *slog.Logger {
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}
+	if debug {
+		opts.Level = slog.LevelDebug
+		opts.AddSource = true
+	}
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, opts))
+	slog.SetDefault(logger)
+	return logger
 }

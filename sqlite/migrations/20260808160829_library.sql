@@ -28,12 +28,15 @@ CREATE TABLE albums (
     compilation             INTEGER NOT NULL DEFAULT 0,
     live                    INTEGER NOT NULL DEFAULT 0,
 
-    group_key               TEXT    NOT NULL UNIQUE,
+    group_key               TEXT    NOT NULL,
     version                 TEXT    NOT NULL DEFAULT '',
     primary_version         INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX idx_albums_group ON albums(group_key);
+-- A dir holds at most one album per group; powers the importer's
+-- ID-stable upsert on reparse.
+CREATE UNIQUE INDEX idx_albums_dir_group ON albums(dir_id, group_key);
 -- Each album grouping may only have 1 primary version.
 CREATE UNIQUE INDEX idx_albums_group_primary_version ON albums(group_key)
     WHERE primary_version = 1;
@@ -99,7 +102,9 @@ CREATE TABLE album_images (
     album_id    TEXT NOT NULL REFERENCES albums(id) ON DELETE CASCADE,
     image_id    TEXT NOT NULL REFERENCES images(id) ON DELETE CASCADE,
     kind        TEXT NOT NULL,
-    set_cover   INTEGER NOT NULL DEFAULT 0
+    set_cover   INTEGER NOT NULL DEFAULT 0,
+
+    PRIMARY KEY (album_id, image_id)
 );
 
 CREATE INDEX idx_album_images_image ON album_images(image_id);

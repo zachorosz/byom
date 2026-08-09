@@ -2,13 +2,18 @@ package metadata
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
+	"io"
+	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/zachorosz/byom/library"
+	"github.com/zachorosz/byom/metadata/taglib"
 	"github.com/zachorosz/byom/storage"
-	"golang.org/x/sync/errgroup"
 )
 
 // ClaimedDir is a dir claimed from the parse queue. LockedGeneration is
@@ -22,20 +27,45 @@ type ClaimedDir struct {
 }
 
 type ParseResult struct {
-	DirID uuid.UUID
-	// AlbumMetadata
-	// AlbumArtists
-	// Tracks
-	// ParseErrors
+	DirID  uuid.UUID
+	Albums []ParsedAlbum
+	Images []ParsedImage
+	Errors []ParseError
 }
 
-type ParseQueue interface {
-	DirtyDirs(context.Context, int) ([]ClaimedDir, error)
+// ParsedImage is an image added to the image store during parse,
+// classified by its filename.
+type ParsedImage struct {
+	ImageID uuid.UUID
+	Kind    library.ImageKind
 }
 
-// ParseStore is the claimed-dir surface a parser worker needs: reading
-// a claimed dir's files and releasing the claim when done or failed.
+// ParseError records a per-file parse failure.
+type ParseError struct {
+	FileID  uuid.UUID
+	Message string
+}
+
+type ParsedAlbum struct {
+	Metadata AlbumMetadata
+	Artists  []Credit
+	Tracks   []ParsedTrack
+}
+
+type ParsedTrack struct {
+	FileID      uuid.UUID
+	Metadata    TrackMetadata
+	Credits     []Credit
+	Audio       library.AudioProperties
+	Duration    time.Duration
+	StartOffset time.Duration
+}
+
+// ParseStore is the parse pipeline's persistence surface: claiming
+// dirty dirs, reading a claimed dir's files, and releasing the claim
+// when done or failed.
 type ParseStore interface {
+	DirtyDirs(ctx context.Context, limit int) ([]ClaimedDir, error)
 	DirFiles(ctx context.Context, dirID uuid.UUID) ([]storage.File, error)
 	ReleaseDir(ctx context.Context, dirID uuid.UUID, lockedGen int64) error
 	ReleaseAndRedirty(ctx context.Context, dirID uuid.UUID, lockedGen int64) error
@@ -46,184 +76,111 @@ type LocationResolver interface {
 	Location(ctx context.Context, id uuid.UUID) (storage.Location, error)
 }
 
-type ParseDispatcher struct {
-	store       ParseQueue
-	dirtyNotify chan struct{}
-	toParse     chan<- ClaimedDir
-	logger      *slog.Logger
+type ImageStore interface {
+	Add(context.Context, io.Reader) (library.Image, error)
 }
 
-func NewParseDispatcher(store ParseQueue, toParse chan<- ClaimedDir) *ParseDispatcher {
-	return &ParseDispatcher{
-		store:       store,
-		dirtyNotify: make(chan struct{}, 1),
-		toParse:     toParse,
-		logger:      slog.Default(),
-	}
-}
-
-// Wake is a coalescing trigger that notifies the dispatcher to wake up and
-// start processing dirty directories.
-func (d *ParseDispatcher) Wake() {
-	select {
-	case d.dirtyNotify <- struct{}{}:
-	default:
-		// dispatcher is already awake or a token is already queued.
-		// we can safely drop this notification.
-	}
-}
-
-func (d *ParseDispatcher) Run(ctx context.Context) error {
-	// Startup sweep to process any dirty dirs leftover from previous runs.
-	d.pump(ctx)
-
-	// Wait for live triggers via Wake in an event loop.
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-d.dirtyNotify:
-			d.pump(ctx) // wake up and drain the DB until empty
-		}
-	}
-}
-
-// pump pulls from the DB and blocks if the parser queue is full.
-// It returns when there are exactly 0 dirty directories left.
-func (d *ParseDispatcher) pump(ctx context.Context) error {
-	for {
-		claimed, err := d.store.DirtyDirs(ctx, 50)
-		if err != nil {
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-			// TODO: maybe do something better here?
-			d.logger.Error("fetch dirty directories failed", slog.Any("error", err))
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(1 * time.Second):
-			}
-			continue
-		}
-		if len(claimed) == 0 {
-			return nil // DB is clean, exit pump and go back to sleep.
-		}
-		for _, c := range claimed {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case d.toParse <- c:
-				// if the parser queue is full, this gracefully blocks,
-				// applying backpressure all the way up to this loop.
-			}
-		}
-	}
-}
-
-func StartParserPool(
+// parseDir parses the files of a synced dir. dir must be the absolute
+// path of the dir on disk; f.Name is joined onto it per file.
+func parseDir(
 	ctx context.Context,
-	workers int,
-	store ParseStore,
-	locations LocationResolver,
-	toParse <-chan ClaimedDir,
-	out chan<- ParseResult,
-) *errgroup.Group {
-	g, gctx := errgroup.WithContext(ctx)
-	for i := range workers {
-		g.Go(func() error {
-			return runParserWorker(gctx, i, store, locations, toParse, out)
-		})
-	}
-	return g
-}
+	images ImageStore,
+	dir string,
+	dirID uuid.UUID,
+	files []storage.File,
+) ParseResult {
+	res := ParseResult{DirID: dirID}
 
-func runParserWorker(
-	ctx context.Context,
-	workerID int,
-	store ParseStore,
-	locations LocationResolver,
-	in <-chan ClaimedDir,
-	out chan<- ParseResult,
-) error {
-	logger := slog.With(slog.Int("worker", workerID))
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case payload, ok := <-in:
-			if !ok {
-				return nil
-			}
+	albums := map[string]*ParsedAlbum{}
 
-			loc, err := locations.Location(ctx, payload.LocationID)
+	for _, f := range files {
+		fp := filepath.Join(dir, f.Name)
+		switch f.Kind {
+		case storage.FileAudio:
+			audio, tags, err := taglib.ReadAudio(fp)
 			if err != nil {
-				logger.Error("unknown location", slog.String("location_id", payload.LocationID.String()))
-				if relErr := store.ReleaseAndRedirty(ctx, payload.ID, payload.LockedGeneration); relErr != nil {
-					logger.Warn("release+dirty failed", slog.Any("error", relErr),
-						slog.String("dir_id", payload.ID.String()))
-				}
+				res.Errors = append(res.Errors, ParseError{FileID: f.ID, Message: err.Error()})
 				continue
 			}
+			tags = normTags(tags)
 
-			root, err := loc.Root()
-			if err != nil {
-				logger.Error("resolve location root failed", slog.Any("error", err),
-					slog.String("location_id", loc.ID.String()))
-				if relErr := store.ReleaseAndRedirty(ctx, payload.ID, payload.LockedGeneration); relErr != nil {
-					logger.Warn("release+dirty failed", slog.Any("error", relErr),
-						slog.String("dir_id", payload.ID.String()))
+			album := mapAlbum(tags)
+			albumArtists := mapAlbumArtists(tags)
+
+			track := ParsedTrack{
+				FileID:   f.ID,
+				Metadata: mapTrack(tags),
+				Credits:  mapCredits(tags),
+				Audio:    audio,
+				// TODO: cuesheets
+				Duration:    audio.Duration,
+				StartOffset: 0,
+			}
+
+			key := albumMetaKey(album, albumArtists)
+			if al, ok := albums[key]; ok {
+				al.Tracks = append(albums[key].Tracks, track)
+			} else {
+				albums[key] = &ParsedAlbum{
+					Metadata: album,
+					Artists:  albumArtists,
+					Tracks:   []ParsedTrack{track},
 				}
+			}
+
+		case storage.FileImage:
+			file, err := os.Open(fp)
+			if err != nil {
+				res.Errors = append(res.Errors, ParseError{FileID: f.ID, Message: err.Error()})
 				continue
 			}
-
-			files, err := store.DirFiles(ctx, payload.ID)
+			img, err := images.Add(ctx, file)
 			if err != nil {
-				if ctx.Err() != nil {
-					return ctx.Err()
-				}
-				// A transient DB error here shouldn't kill the whole pool, but
-				// it also can't be silently dropped, since we have a parse lock
-				// on this dir (locked_generation is set).
-				logger.Error("read dir files failed", slog.Any("error", err),
-					slog.String("dir_id", payload.ID.String()))
-
-				// Release the lock but re-request a retry by leaving dirty
-				// set.
-				//
-				// TODO: max retries and escalate to log.Error. if failing
-				// because of something persistent (e.g corrupt row, dir deleted
-				// mid-parse but not swept), we will spin on it every pump().
-				if relErr := store.ReleaseAndRedirty(ctx, payload.ID, payload.LockedGeneration); relErr != nil {
-					logger.Warn("release+dirty failed", slog.Any("error", relErr),
-						slog.String("dir_id", payload.ID.String()))
-				}
+				file.Close()
+				res.Errors = append(res.Errors, ParseError{FileID: f.ID, Message: err.Error()})
 				continue
 			}
-
-			dir := filepath.Join(root, payload.RelPath)
-			res := parseDir(ctx, dir, payload.ID, files)
-
-			if err := store.ReleaseDir(ctx, payload.ID, payload.LockedGeneration); err != nil {
-				// Lock already gone (crash-recovery reap or duplicate
-				// dispatch). Log but don't fail the parse itself, the
-				// work already happened successfully.
-				logger.Warn("release dir lock failed", slog.Any("error", err),
-					slog.String("dir_id", payload.ID.String()))
-			}
-
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case out <- res:
-			}
+			file.Close()
+			res.Images = append(res.Images, ParsedImage{
+				ImageID: img.ID,
+				Kind:    classifyImage(f.Name),
+			})
+		default:
+			res.Errors = append(res.Errors, ParseError{FileID: f.ID, Message: fmt.Sprintf("unknown file kind %q", f.Kind)})
 		}
 	}
-}
 
-func parseDir(_ context.Context, _ string, dirID uuid.UUID, _ []storage.File) ParseResult {
-	res := ParseResult{
-		DirID: dirID,
+	for _, al := range albums {
+		res.Albums = append(res.Albums, *al)
 	}
+
 	return res
+}
+
+// classifyImage classifies an image by its base filename. Files from
+// merged disc dirs carry a disc prefix (e.g. "CD1/cover.jpg"), so only
+// the base name is considered.
+func classifyImage(name string) library.ImageKind {
+	base := strings.ToLower(path.Base(name))
+	base = strings.TrimSuffix(base, path.Ext(base))
+	switch base {
+	case "cover", "front", "folder", "album", "albumart":
+		return library.ImageCover
+	case "back":
+		return library.ImageBack
+	case "disc", "cd", "media", "label":
+		return library.ImageDisc
+	case "artist":
+		return library.ImageArtist
+	}
+	return library.ImageOther
+}
+
+func albumMetaKey(meta AlbumMetadata, artists []Credit) string {
+	artistNames := make([]string, len(artists))
+	for i, a := range artists {
+		artistNames[i] = a.CreditedName
+	}
+	fields := []string{strings.Join(artistNames, "/"), meta.Title}
+	return strings.Join(fields, string('\x00'))
 }
