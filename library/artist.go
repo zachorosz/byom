@@ -17,28 +17,47 @@ type Artist struct {
 	SortName string
 }
 
-var artistNameReplacer = strings.NewReplacer(
-	"&", "and",
-	// separators; spaces will collapse
-	".", " ",
-	"/", " ",
-	// not important or structural
-	",", "",
+var diacriticRemover = transform.Chain(
+	norm.NFD,
+	runes.Remove(runes.In(unicode.Mn)),
+	norm.NFC,
 )
 
-// NormalizeArtistName normalizes name for matching against the artist
-// aliases.
+// NormalizeArtistName normalizes name for matching against the artist aliases.
 func NormalizeArtistName(name string) string {
-	// TODO: make more efficient
+	name, _, _ = transform.String(diacriticRemover, name)
 
-	name = artistNameReplacer.Replace(name)
+	var b strings.Builder
+	b.Grow(len(name) + 8)
 
-	// remove diacritics
-	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-	name, _, _ = transform.String(t, name)
+	inSpace := false
+	for _, r := range name {
+		switch r {
+		case ',', '\'', '"', '`', '‘', '’', '“', '”':
+			continue
+		}
+		// Word separators
+		if r == '.' || r == '/' || unicode.IsSpace(r) || unicode.Is(unicode.Pd, r) {
+			if b.Len() > 0 {
+				inSpace = true
+			}
+			continue
+		}
+		// Resolve any accumulated separators into a single hyphen
+		if inSpace {
+			b.WriteByte('-')
+			inSpace = false
+		}
+		// Handle special character transliterations and expansions
+		switch r {
+		case '&':
+			b.WriteString("and")
+		case 'Ø', 'ø':
+			b.WriteByte('o')
+		default:
+			b.WriteRune(unicode.ToLower(r))
+		}
+	}
 
-	name = strings.ToLower(name)
-
-	words := strings.Fields(name)
-	return strings.Join(words, "-")
+	return b.String()
 }
