@@ -11,7 +11,7 @@ import (
 
 func Open(dsn string) (*sql.DB, error) {
 	q := url.Values{}
-	q.Set("_time_integer_format", "unix")
+	q.Set("_time_integer_format", "unix_nano")
 	q.Set("_inttotime", "1")
 
 	if dsn == ":memory:" {
