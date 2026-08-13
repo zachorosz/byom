@@ -32,7 +32,7 @@ type ImportAlbum struct {
 type Importer struct {
 	Library LibraryStore
 
-	mu      sync.Mutex
+	mu      sync.RWMutex
 	artists map[string]uuid.UUID // normalized name → artist ID
 }
 
@@ -174,6 +174,13 @@ func (im *Importer) internArtist(ctx context.Context, name string) (uuid.UUID, e
 	if norm == "" {
 		return uuid.Nil, nil
 	}
+
+	im.mu.RLock()
+	if id, ok := im.artists[norm]; ok {
+		im.mu.RUnlock()
+		return id, nil
+	}
+	im.mu.RUnlock()
 
 	im.mu.Lock()
 	defer im.mu.Unlock()
