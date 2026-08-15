@@ -26,10 +26,10 @@ func TestParseQueueStore_DirFilesOrdersByName(t *testing.T) {
 		t.Fatalf("seed dir failed: %v", err)
 	}
 
-	for _, name := range []string{"front.jpg", "02 - b.flac", "cover.jpg", "01 - a.flac", "back.jpg"} {
+	for _, name := range []string{"1", "z", "2", "01", "A", "10", "Z", "a"} {
 		if _, err := db.ExecContext(ctx,
 			`INSERT INTO files (id, dir_id, name, kind, size_bytes, mod_time)
-			 VALUES (?, ?, ?, 'image', 1, 1)`,
+			 VALUES (?, ?, ?, 'audio', 1, 1)`,
 			uuid.Must(uuid.NewV7()), dirID, name); err != nil {
 			t.Fatalf("seed file %s failed: %v", name, err)
 		}
@@ -44,7 +44,7 @@ func TestParseQueueStore_DirFilesOrdersByName(t *testing.T) {
 	for _, f := range files {
 		got = append(got, f.Name)
 	}
-	want := []string{"01 - a.flac", "02 - b.flac", "back.jpg", "cover.jpg", "front.jpg"}
+	want := []string{"01", "1", "10", "2", "a", "A", "z", "Z"}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("DirFiles() names mismatch (-want +got):\n%s", diff)
 	}
