@@ -58,6 +58,19 @@ func gifBytes(t *testing.T, width, height int) []byte {
 	return buf.Bytes()
 }
 
+func webpBytes(t *testing.T) []byte {
+	t.Helper()
+	// 3x2 red WebP image since Go standard library lacks a native WebP encoder
+	return []byte{
+		0x52, 0x49, 0x46, 0x46, 0x3c, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
+		0x56, 0x50, 0x38, 0x20, 0x30, 0x00, 0x00, 0x00, 0xd0, 0x01, 0x00, 0x9d,
+		0x01, 0x2a, 0x03, 0x00, 0x02, 0x00, 0x02, 0x00, 0x34, 0x25, 0xa0, 0x02,
+		0x74, 0xba, 0x01, 0xf8, 0x00, 0x03, 0xb0, 0x00, 0xfe, 0xf0, 0xc4, 0x0b,
+		0xff, 0x20, 0xb9, 0x61, 0x75, 0xc8, 0xd7, 0xff, 0x20, 0x3f, 0xe4, 0x07,
+		0xfc, 0x80, 0xff, 0xf8, 0xf2, 0x00, 0x00, 0x00,
+	}
+}
+
 func TestStore_Add_PersistsBlobAndDedupes(t *testing.T) {
 	ctx := context.Background()
 	root := t.TempDir()
@@ -139,23 +152,28 @@ func TestStore_Add_SupportsEveryWalkedFormat(t *testing.T) {
 		{name: "PNG", encode: func(t *testing.T) []byte { return pngBytes(t, 3, 2) }, wantMime: "image/png"},
 		{name: "JPEG", encode: func(t *testing.T) []byte { return jpegBytes(t, 3, 2) }, wantMime: "image/jpeg"},
 		{name: "GIF", encode: func(t *testing.T) []byte { return gifBytes(t, 3, 2) }, wantMime: "image/gif"},
+		{name: "WEBP", encode: func(t *testing.T) []byte { return webpBytes(t) }, wantMime: "image/webp"},
 	}
 	for _, tc := range tests {
-		s, err := NewStore(ctx, t.TempDir(), &fakeIndex{byHash: map[string]library.Image{}})
-		if err != nil {
-			t.Fatalf("%s: NewStore failed: %v", tc.name, err)
-		}
-		img, err := s.Add(ctx, bytes.NewReader(tc.encode(t)))
-		if err != nil {
-			t.Errorf("%s: Add() failed: %v", tc.name, err)
-			continue
-		}
-		if img.MimeType != tc.wantMime {
-			t.Errorf("%s: Add() mime = %q, want %q", tc.name, img.MimeType, tc.wantMime)
-		}
-		if img.Width != 3 || img.Height != 2 {
-			t.Errorf("%s: Add() dimensions = %dx%d, want 3x2", tc.name, img.Width, img.Height)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+
+			s, err := NewStore(ctx, root, &fakeIndex{byHash: map[string]library.Image{}})
+			if err != nil {
+				t.Fatalf("NewStore(%q) returned unexpected error: %v", root, err)
+			}
+
+			img, err := s.Add(ctx, bytes.NewReader(tc.encode(t)))
+			if err != nil {
+				t.Fatalf("Add() returned unexpected error: %v", err)
+			}
+			if img.MimeType != tc.wantMime {
+				t.Errorf("Add() mime = %q, want %q", img.MimeType, tc.wantMime)
+			}
+			if img.Width != 3 || img.Height != 2 {
+				t.Errorf("Add() dimensions = %dx%d, want 3x2", img.Width, img.Height)
+			}
+		})
 	}
 }
 
