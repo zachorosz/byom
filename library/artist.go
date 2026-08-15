@@ -17,15 +17,19 @@ type Artist struct {
 	SortName string
 }
 
-var diacriticRemover = transform.Chain(
-	norm.NFD,
-	runes.Remove(runes.In(unicode.Mn)),
-	norm.NFC,
-)
+// newDiacriticRemover returns a transformer that strips combining
+// marks. transform.Chain is stateful, so each caller needs its own.
+func newDiacriticRemover() transform.Transformer {
+	return transform.Chain(
+		norm.NFD,
+		runes.Remove(runes.In(unicode.Mn)),
+		norm.NFC,
+	)
+}
 
 // NormalizeArtistName normalizes name for matching against the artist aliases.
 func NormalizeArtistName(name string) string {
-	name, _, _ = transform.String(diacriticRemover, name)
+	name, _, _ = transform.String(newDiacriticRemover(), name)
 
 	var b strings.Builder
 	b.Grow(len(name) + 8)
