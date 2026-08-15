@@ -49,11 +49,13 @@ func (s *ParseQueueStore) DirtyDirs(ctx context.Context, limit int) ([]metadata.
 	return claimed, nil
 }
 
-// DirFiles lists the non-missing files of a claimed dir for parsing.
+// DirFiles lists the non-missing files of a claimed dir for parsing, ordered by
+// file name.
 func (s *ParseQueueStore) DirFiles(ctx context.Context, dirID uuid.UUID) ([]storage.File, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, name, kind, size_bytes, mod_time
-		 FROM files WHERE dir_id = ? AND missing = 0`, dirID)
+		 FROM files WHERE dir_id = ? AND missing = 0
+		 ORDER BY name`, dirID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list: %w", err)
 	}
