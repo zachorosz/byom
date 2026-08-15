@@ -64,11 +64,6 @@ func writeImageDir(t *testing.T, names ...string) (string, []storage.File) {
 	return dir, files
 }
 
-// TestParseDir_ReadsOnlyEagerImageKinds pins the lazy-cache policy. An
-// image's kind is knowable from its filename alone, so the parser can
-// decide what to fetch without spending a single byte. Only the art a
-// library view needs up front is read; everything else stays a files
-// row to be materialized on demand.
 func TestParseDir_ReadsOnlyEagerImageKinds(t *testing.T) {
 	ctx := context.Background()
 	dir, files := writeImageDir(t,
@@ -80,7 +75,7 @@ func TestParseDir_ReadsOnlyEagerImageKinds(t *testing.T) {
 	res := parseDir(ctx, images, dir, uuid.Must(uuid.NewV7()), files)
 
 	if got, want := images.count(), 2; got != want {
-		t.Errorf("images read from disk = %d, want %d (cover and artist only)", got, want)
+		t.Errorf("images read from disk = %d, want %d", got, want)
 	}
 
 	var gotKinds []library.ImageKind
@@ -93,6 +88,6 @@ func TestParseDir_ReadsOnlyEagerImageKinds(t *testing.T) {
 		t.Errorf("parseDir() image kinds = %v, want %v", gotKinds, want)
 	}
 	if len(res.Errors) != 0 {
-		t.Errorf("parseDir() errors = %v, want none (deferring is not a failure)", res.Errors)
+		t.Errorf("parseDir() errors = %v, want none", res.Errors)
 	}
 }
