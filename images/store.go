@@ -8,21 +8,18 @@ import (
 	"fmt"
 	"image"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
 
-	// Register decoders for the formats isSupportedImage accepts;
-	// image.DecodeConfig only sees registered formats.
+	"github.com/google/uuid"
+	"github.com/zachorosz/byom/library"
+
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 
 	_ "golang.org/x/image/webp"
-
-	"github.com/google/uuid"
-	"github.com/zachorosz/byom/library"
 )
 
 // Index records stored images in the database.
@@ -67,28 +64,23 @@ func (s *Store) Add(ctx context.Context, r io.Reader) (library.Image, error) {
 	}
 	s.mu.RUnlock()
 
-	// Slow path: probe format + dimensions before touching disk so we
-	// reject non-images cheaply.
+	// Slow path: probe format + dimensions before touching disk.
 	data := buf.Bytes()
-	mime := http.DetectContentType(data)
-	if !isSupportedImage(mime) {
-		return library.Image{}, fmt.Errorf("images: unsupported mime %q", mime)
-	}
-	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
 		return library.Image{}, fmt.Errorf("images: decode config: %w", err)
+	}
+	mime, ok := mimeForFormat(format)
+	if !ok {
+		return library.Image{}, fmt.Errorf("images: unsupported format %q", format)
 	}
 
 	if err := s.writeBytes(sha, data); err != nil {
 		return library.Image{}, err
 	}
 
-	// Under write lock: double-check the map then mint + insert + register.
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if img, ok := s.known[sha]; ok {
-		return img, nil
-	}
+	// Upsert outside the lock to prevent stalling concurrent parse workers.
+	// Racing callers converge on content_hash.
 	img, err := s.index.Upsert(ctx, library.Image{
 		ID:          uuid.Must(uuid.NewV7()),
 		ContentHash: sha,
@@ -98,6 +90,13 @@ func (s *Store) Add(ctx context.Context, r io.Reader) (library.Image, error) {
 	})
 	if err != nil {
 		return library.Image{}, err
+	}
+
+	// Publish under the lock; first writer wins so callers agree.
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if existing, ok := s.known[sha]; ok {
+		return existing, nil
 	}
 	s.known[sha] = img
 	return img, nil
@@ -125,10 +124,17 @@ func (s *Store) writeBytes(sha string, data []byte) error {
 	return nil
 }
 
-func isSupportedImage(mime string) bool {
-	switch mime {
-	case "image/jpeg", "image/png", "image/gif", "image/webp":
-		return true
+// mimeForFormat maps a registered decoder's format name to its MIME type.
+func mimeForFormat(format string) (string, bool) {
+	switch format {
+	case "jpeg":
+		return "image/jpeg", true
+	case "png":
+		return "image/png", true
+	case "gif":
+		return "image/gif", true
+	case "webp":
+		return "image/webp", true
 	}
-	return false
+	return "", false
 }

@@ -65,8 +65,8 @@ var (
 		".ape": true, ".wv": true,
 	}
 	imageExtensions = map[string]bool{
-		".jpg": true, ".jpeg": true, ".png": true, ".webp": true,
-		".gif": true, ".bmp": true, ".tiff": true, ".tif": true,
+		".jpg": true, ".jpeg": true, ".png": true, ".gif": true,
+		".webp": true,
 	}
 )
 

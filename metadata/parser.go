@@ -129,6 +129,11 @@ func parseDir(
 			}
 
 		case storage.FileImage:
+			kind := classifyImage(f.Name)
+			if !eagerImageKind(kind) {
+				continue
+			}
+
 			file, err := os.Open(fp)
 			if err != nil {
 				res.Errors = append(res.Errors, ParseError{FileID: f.ID, Message: err.Error()})
@@ -143,7 +148,7 @@ func parseDir(
 			file.Close()
 			res.Images = append(res.Images, ParsedImage{
 				ImageID: img.ID,
-				Kind:    classifyImage(f.Name),
+				Kind:    kind,
 			})
 		default:
 			res.Errors = append(res.Errors, ParseError{FileID: f.ID, Message: fmt.Sprintf("unknown file kind %q", f.Kind)})
@@ -155,6 +160,12 @@ func parseDir(
 	}
 
 	return res
+}
+
+// eagerImageKind reports whether an image of this kind is fetched
+// during the parse.
+func eagerImageKind(kind library.ImageKind) bool {
+	return kind == library.ImageCover || kind == library.ImageArtist
 }
 
 // classifyImage classifies an image by its base filename. Files from
