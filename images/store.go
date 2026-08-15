@@ -79,9 +79,8 @@ func (s *Store) Add(ctx context.Context, r io.Reader) (library.Image, error) {
 		return library.Image{}, err
 	}
 
-	// Upsert outside the lock: all parse workers share one Store, and
-	// holding it across a DB round trip serialises every ingest. Racing
-	// callers converge, since the upsert keys on content_hash.
+	// Upsert outside the lock to prevent stalling concurrent parse workers.
+	// Racing callers converge on content_hash.
 	img, err := s.index.Upsert(ctx, library.Image{
 		ID:          uuid.Must(uuid.NewV7()),
 		ContentHash: sha,
@@ -125,9 +124,7 @@ func (s *Store) writeBytes(sha string, data []byte) error {
 	return nil
 }
 
-// mimeForFormat maps a registered decoder's format name to its MIME
-// type. Every format the scanner classifies as an image must appear
-// here, or those files are downloaded in full only to be rejected.
+// mimeForFormat maps a registered decoder's format name to its MIME type.
 func mimeForFormat(format string) (string, bool) {
 	switch format {
 	case "jpeg":

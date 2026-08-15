@@ -165,11 +165,7 @@ func parseDir(
 // eagerImageKind reports whether an image of this kind is fetched
 // during the parse.
 func eagerImageKind(kind library.ImageKind) bool {
-	switch kind {
-	case library.ImageCover, library.ImageArtist:
-		return true
-	}
-	return false
+	return kind == library.ImageCover || kind == library.ImageArtist
 }
 
 // classifyImage classifies an image by its base filename. Files from
