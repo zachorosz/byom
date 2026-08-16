@@ -10,9 +10,31 @@ import (
 func normTags(tags map[string][]string) map[string][]string {
 	norm := map[string][]string{}
 	for k, v := range tags {
-		norm[normTagKey(k)] = v
+		// Clean null bytes out of the raw strings before we do any splitting
+		var cleaned []string
+		for _, s := range v {
+			cleaned = append(cleaned, strings.ReplaceAll(s, "\x00", ""))
+		}
+		// Globally split all tag values by common delimiters
+		norm[normTagKey(k)] = splitValues(cleaned, []string{" / ", ";", `\\`})
 	}
 	return norm
+}
+
+func splitValues(values []string, joins []string) []string {
+	result := values
+	for _, delim := range joins {
+		var nextRound []string
+		for _, chunk := range result {
+			for _, part := range strings.Split(chunk, delim) {
+				if trimmed := strings.TrimSpace(part); trimmed != "" {
+					nextRound = append(nextRound, trimmed)
+				}
+			}
+		}
+		result = nextRound
+	}
+	return result
 }
 
 func normTagKey(key string) string { return strings.ToUpper(key) }
@@ -80,29 +102,7 @@ func mapTrack(tags map[string][]string) TrackMetadata {
 	}
 }
 
-func splitArtists(s string) []string {
-	if s == "" {
-		return nil
-	}
 
-	artists := []string{s}
-	joins := []string{" / ", ";"} // Longest/most specific phrases first
-
-	for _, delim := range joins {
-		var nextRound []string
-		for _, chunk := range artists {
-			parts := strings.SplitSeq(chunk, delim)
-			for part := range parts {
-				if name := strings.TrimSpace(part); name != "" {
-					nextRound = append(nextRound, name)
-				}
-			}
-		}
-		artists = nextRound
-	}
-
-	return artists
-}
 func mapCredits(tags map[string][]string) []Credit {
 	var credits []Credit
 
@@ -121,9 +121,7 @@ func mapCredits(tags map[string][]string) []Credit {
 	}
 	for _, tr := range tagRoles {
 		for _, name := range firstMatching(tags, []string{tr.tag}) {
-			for _, split := range splitArtists(name) {
-				credits = append(credits, Credit{CreditedName: split, Role: tr.role})
-			}
+			credits = append(credits, Credit{CreditedName: name, Role: tr.role})
 		}
 	}
 
@@ -182,23 +180,17 @@ func mapAlbumType(tags map[string][]string) library.AlbumType {
 func mapAlbumArtists(tags map[string][]string) []Credit {
 	var artists []Credit
 	for _, name := range firstMatching(tags, []string{"ALBUMARTIST"}) {
-		for _, split := range splitArtists(name) {
-			artists = append(artists, Credit{
-				CreditedName: split,
-			})
-		}
+		artists = append(artists, Credit{
+			CreditedName: name,
+		})
 	}
 	if len(artists) > 0 {
 		return artists
 	}
-	// fallback to ARTIST tag if there is a single value (including split).
+	// fallback to ARTIST tag if there is a single value
 	names := firstMatching(tags, []string{"ARTIST"})
 	if len(names) != 1 {
 		return []Credit{}
 	}
-	split := splitArtists(names[0])
-	if len(split) != 1 {
-		return []Credit{}
-	}
-	return []Credit{{CreditedName: split[0]}}
+	return []Credit{{CreditedName: names[0]}}
 }

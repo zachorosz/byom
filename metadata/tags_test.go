@@ -7,7 +7,7 @@ import (
 	"github.com/zachorosz/byom/library"
 )
 
-func TestSplitArtists(t *testing.T) {
+func TestSplitValues(t *testing.T) {
 	tests := []struct {
 		name string
 		in   string
@@ -25,29 +25,15 @@ func TestSplitArtists(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := splitArtists(tc.in)
+			got := splitValues([]string{tc.in}, []string{" / ", ";", `\\`})
 			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("splitArtists(%q) mismatch (-want +got):\n%s", tc.in, diff)
+				t.Errorf("splitValues(%q) mismatch (-want +got):\n%s", tc.in, diff)
 			}
 		})
 	}
 }
 
-func TestMapCredits_SplitsRoleTags(t *testing.T) {
-	tags := map[string][]string{
-		"COMPOSER": {"Stu Mackenzie; Joey Walker"},
-	}
 
-	got := mapCredits(tags)
-
-	want := []Credit{
-		{CreditedName: "Stu Mackenzie", Role: "Composer"},
-		{CreditedName: "Joey Walker", Role: "Composer"},
-	}
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("mapCredits(%v) mismatch (-want +got):\n%s", tags, diff)
-	}
-}
 
 func TestParseCredit(t *testing.T) {
 	tests := []struct {
