@@ -6,19 +6,13 @@ import (
 
 	"github.com/simonhull/audiometa"
 	"github.com/zachorosz/byom/library"
-	"github.com/zachorosz/byom/metadata/taglib"
 )
 
 // ReadAudio extracts metadata and tags using the pure Go audiometa library.
 func ReadAudio(ctx context.Context, path string) (library.AudioProperties, map[string][]string, error) {
 	file, err := audiometa.OpenContext(ctx, path, audiometa.WithIgnoreWarnings())
 	if err != nil {
-		// Fallback to the WASM-based taglib for unsupported formats or corrupted files
-		audio, tags, taglibErr := taglib.ReadAudio(path)
-		if taglibErr != nil {
-			return library.AudioProperties{}, nil, fmt.Errorf("audiometa failed (%v), and taglib fallback failed: %w", err, taglibErr)
-		}
-		return audio, tags, nil
+		return library.AudioProperties{}, nil, fmt.Errorf("audiometa failed to open %s: %w", path, err)
 	}
 	defer file.Close()
 
