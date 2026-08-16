@@ -79,12 +79,12 @@ func main() {
 	scanner := &scan.Scanner{
 		Store:   scanStore,
 		Workers: 4,
-		OnDirty: pipeline.Wake,
 	}
 	if err := scanner.Scan(ctx, os.DirFS(root), loc); err != nil {
 		logger.Error("scan failed", slog.Any("error", err), slog.String("location_id", loc.ID.String()))
 	} else {
 		logger.Info("scan complete!", slog.String("location_id", loc.ID.String()))
+		pipeline.Wake()
 	}
 
 	<-ctx.Done()
