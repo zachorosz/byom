@@ -37,10 +37,9 @@ type Scanner struct {
 	OnDirty func()
 }
 
-// Scan walks fsys post-order, merging disc folders into their parent
-// album dir, and syncs each dir's files against the store under a new
-// scan generation. Dirs and files not seen this generation are swept
-// (marked missing) afterwards.
+// Scan synchronizes fsys with the store under a new scan generation.
+// It walks fsys post-order, merges disc folders into their parent album
+// directories, and marks unseen items as missing if the scan succeeds.
 func (s *Scanner) Scan(ctx context.Context, fsys fs.FS, loc storage.Location) error {
 	gen, scanID, err := s.Store.BeginScan(ctx, loc.ID)
 	if err != nil {
@@ -73,9 +72,12 @@ func (s *Scanner) Scan(ctx context.Context, fsys fs.FS, loc storage.Location) er
 	syncErr := syncPool.Wait()
 	scanErr := errors.Join(walkErr, syncErr)
 
-	// sweep dirs not found during this generation
-	if _, err := s.Store.Sweep(ctx, loc.ID, gen); err != nil {
-		slog.Warn("sweep failed", slog.Any("error", err))
+	// Only sweep if the scan completed successfully; otherwise, unvisited
+	// directories would be incorrectly marked as missing.
+	if scanErr == nil {
+		if _, err := s.Store.Sweep(ctx, loc.ID, gen); err != nil {
+			slog.Warn("sweep failed", slog.Any("error", err))
+		}
 	}
 
 	if err := s.Store.FinishScan(ctx, scanID, scanErr); err != nil {
