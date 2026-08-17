@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package library.v1;
+
+import "buf/validate/validate.proto";
+import "library/v1/artist.proto";
+import "library/v1/album.proto";
+import "library/v1/track.proto";
+
+message ListArtistsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListArtistsResponse {
+  repeated Artist items = 1;
+  string next_page_token = 2;
+}
+
+message GetArtistRequest {
+  string id = 1 [(buf.validate.field).required = true];
+}
+
+message GetArtistResponse {
+  Artist artist = 1;
+}
+
+message ListAlbumsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string artist_id = 3;
+}
+
+message ListAlbumsResponse {
+  repeated Album items = 1;
+  string next_page_token = 2;
+}
+
+message GetAlbumRequest {
+  string id = 1 [(buf.validate.field).required = true];
+}
+
+message GetAlbumResponse {
+  Album album = 1;
+}
+
+message ListTracksRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string album_id = 3;
+}
+
+message ListTracksResponse {
+  repeated Track items = 1;
+  string next_page_token = 2;
+}
+
+message GetTrackRequest {
+  string id = 1 [(buf.validate.field).required = true];
+}
+
+message GetTrackResponse {
+  Track track = 1;
+}
+
+service LibraryService {
+  rpc ListArtists(ListArtistsRequest) returns (ListArtistsResponse) {}
+  rpc GetArtist(GetArtistRequest) returns (GetArtistResponse) {}
+  rpc ListAlbums(ListAlbumsRequest) returns (ListAlbumsResponse) {}
+  rpc GetAlbum(GetAlbumRequest) returns (GetAlbumResponse) {}
+  rpc ListTracks(ListTracksRequest) returns (ListTracksResponse) {}
+  rpc GetTrack(GetTrackRequest) returns (GetTrackResponse) {}
+}
+

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package management.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+enum ScanState {
+  SCAN_STATE_UNSPECIFIED = 0;
+  SCAN_STATE_RUNNING = 1;
+  SCAN_STATE_CANCELLING = 2;
+  SCAN_STATE_DONE = 3;
+  SCAN_STATE_FAILED = 4;
+  SCAN_STATE_ABORTED = 5;
+}
+
+message Scan {
+  string id = 1;
+  string location_id = 2;
+  ScanState state = 3;
+  google.protobuf.Timestamp start_time = 4;
+  google.protobuf.Timestamp finish_time = 5;
+  string error = 6;
+  Progress progress = 7;
+
+  message Progress {
+    int64 dirs_seen = 1;
+    int64 dirs_missing = 2;
+    int64 files_seen = 3;
+    int64 files_missing = 4;
+  }
+}
