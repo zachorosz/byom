@@ -14,8 +14,6 @@ import (
 	"github.com/zachorosz/byom/storage"
 )
 
-// Scanner is the scan lifecycle as the management service uses it. A
-// filter ID of uuid.Nil and an empty state mean "no filter".
 type Scanner interface {
 	Start(ctx context.Context, locationID uuid.UUID) (scan.Scan, error)
 	Cancel(ctx context.Context, scanID uuid.UUID) error
