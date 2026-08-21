@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/zachorosz/byom/library"
+	"github.com/zachorosz/byom/page"
 )
 
 var errPanic = errors.New("internal error")
@@ -21,7 +22,7 @@ func rpcError(err error) error {
 		return nil
 	case errors.Is(err, library.ErrNotFound):
 		return connect.NewError(connect.CodeNotFound, err)
-	case errors.Is(err, library.ErrInvalidPageToken):
+	case errors.Is(err, page.ErrInvalidToken):
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	case errors.Is(err, context.Canceled):
 		return connect.NewError(connect.CodeCanceled, err)
