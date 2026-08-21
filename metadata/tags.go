@@ -7,18 +7,47 @@ import (
 	"github.com/zachorosz/byom/library"
 )
 
+var (
+	splittableTags = map[string]bool{
+		"ARTIST":      true,
+		"ALBUMARTIST": true,
+		"ARRANGER":    true,
+		"COMPOSER":    true,
+		"CONDUCTOR":   true,
+		"ENGINEER":    true,
+		"LYRICIST":    true,
+		"PERFORMER":   true,
+		"PRODUCER":    true,
+		"PERSONNEL":   true,
+		"LABEL":       true,
+	}
+	splitDelims = []string{";", `\\`}
+)
+
 func normTags(tags map[string][]string) map[string][]string {
 	norm := map[string][]string{}
 	for k, v := range tags {
-		// Clean null bytes out of the raw strings before we do any splitting
-		var cleaned []string
-		for _, s := range v {
-			cleaned = append(cleaned, strings.ReplaceAll(s, "\x00", ""))
+		key := normTagKey(k)
+		cleaned := cleanValues(v)
+		if splittableTags[key] {
+			cleaned = splitValues(cleaned, splitDelims)
 		}
-		// Globally split all tag values by common delimiters
-		norm[normTagKey(k)] = splitValues(cleaned, []string{" / ", ";", `\\`})
+		norm[key] = cleaned
 	}
 	return norm
+}
+
+func normTagKey(key string) string { return strings.ToUpper(key) }
+
+// cleanValues strips null bytes, trims whitespace, and drops empty strings.
+func cleanValues(values []string) []string {
+	var cleaned []string
+	for _, s := range values {
+		if trimmed := strings.TrimSpace(strings.ReplaceAll(s, "\x00", "")); trimmed != "" {
+			cleaned = append(cleaned, trimmed)
+		}
+	}
+	return cleaned
 }
 
 func splitValues(values []string, joins []string) []string {
@@ -26,7 +55,7 @@ func splitValues(values []string, joins []string) []string {
 	for _, delim := range joins {
 		var nextRound []string
 		for _, chunk := range result {
-			for _, part := range strings.Split(chunk, delim) {
+			for part := range strings.SplitSeq(chunk, delim) {
 				if trimmed := strings.TrimSpace(part); trimmed != "" {
 					nextRound = append(nextRound, trimmed)
 				}
@@ -37,7 +66,10 @@ func splitValues(values []string, joins []string) []string {
 	return result
 }
 
-func normTagKey(key string) string { return strings.ToUpper(key) }
+// splitArtistValues splits values on the "Artist A / Artist B" convention.
+func splitArtistValues(values []string) []string {
+	return splitValues(values, []string{" / "})
+}
 
 // firstMatching looks through names in order and returns the values
 // for the first key found in tags.
@@ -102,15 +134,17 @@ func mapTrack(tags map[string][]string) TrackMetadata {
 	}
 }
 
-
 func mapCredits(tags map[string][]string) []Credit {
 	var credits []Credit
+
+	for _, name := range splitArtistValues(firstMatching(tags, []string{"ARTIST"})) {
+		credits = append(credits, Credit{CreditedName: name, Role: "Performer"})
+	}
 
 	tagRoles := []struct {
 		tag  string
 		role string
 	}{
-		{tag: "ARTIST", role: "Performer"},
 		{tag: "ARRANGER", role: "Arranger"},
 		{tag: "COMPOSER", role: "Composer"},
 		{tag: "CONDUCTOR", role: "Conductor"},
@@ -179,7 +213,7 @@ func mapAlbumType(tags map[string][]string) library.AlbumType {
 
 func mapAlbumArtists(tags map[string][]string) []Credit {
 	var artists []Credit
-	for _, name := range firstMatching(tags, []string{"ALBUMARTIST"}) {
+	for _, name := range splitArtistValues(firstMatching(tags, []string{"ALBUMARTIST"})) {
 		artists = append(artists, Credit{
 			CreditedName: name,
 		})
@@ -188,7 +222,7 @@ func mapAlbumArtists(tags map[string][]string) []Credit {
 		return artists
 	}
 	// fallback to ARTIST tag if there is a single value
-	names := firstMatching(tags, []string{"ARTIST"})
+	names := splitArtistValues(firstMatching(tags, []string{"ARTIST"}))
 	if len(names) != 1 {
 		return []Credit{}
 	}
