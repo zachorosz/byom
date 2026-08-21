@@ -11,6 +11,7 @@ import (
 
 	"github.com/zachorosz/byom/library"
 	"github.com/zachorosz/byom/metadata"
+	"github.com/zachorosz/byom/page"
 )
 
 // seedLibrary imports one album per title under a fresh dir, each
@@ -90,8 +91,8 @@ func TestLibraryStore_Artists_InvalidToken(t *testing.T) {
 	s := NewLibraryStore(newTestDB(t))
 
 	_, _, err := s.Artists(context.Background(), "not-a-token!", 10)
-	if !errors.Is(err, library.ErrInvalidPageToken) {
-		t.Errorf(`Artists(ctx, "not-a-token!", 10) error = %v, want library.ErrInvalidPageToken`, err)
+	if !errors.Is(err, page.ErrInvalidToken) {
+		t.Errorf(`Artists(ctx, "not-a-token!", 10) error = %v, want page.ErrInvalidToken`, err)
 	}
 }
 
@@ -137,10 +138,10 @@ func TestLibraryStore_Albums_Unfiltered(t *testing.T) {
 	s := NewLibraryStore(db)
 	got, _, err := s.Albums(ctx, uuid.Nil, "", 10)
 	if err != nil {
-		t.Fatalf(`Albums(ctx, uuid.Nil, "", 10) failed: %v`, err)
+		t.Fatalf(`Albums() failed: %v`, err)
 	}
 	if len(got) != 2 {
-		t.Errorf(`Albums(ctx, uuid.Nil, "", 10) = %d albums, want 2`, len(got))
+		t.Errorf(`Albums() = %d albums, want 2`, len(got))
 	}
 }
 
@@ -155,7 +156,7 @@ func TestLibraryStore_Tracks_PaginatesInDiscOrder(t *testing.T) {
 	dirID, fileIDs := seedDir(t, db, 3)
 	al := testAlbum(dirID, artist, "Album One", "group-1", fileIDs)
 	if err := w.ReplaceDirAlbums(ctx, dirID, []metadata.ImportAlbum{al}); err != nil {
-		t.Fatalf("ReplaceDirAlbums(ctx, dirID, album) failed: %v", err)
+		t.Fatalf("ReplaceDirAlbums() failed: %v", err)
 	}
 	albumID := al.Album.ID
 
@@ -202,7 +203,7 @@ func TestLibraryStore_Track_NotFound(t *testing.T) {
 	id := uuid.Must(uuid.NewV7())
 	_, err := s.Track(context.Background(), id)
 	if !errors.Is(err, library.ErrNotFound) {
-		t.Errorf("Track(ctx, %v) error = %v, want library.ErrNotFound", id, err)
+		t.Errorf("Track() error = %v, want library.ErrNotFound", err)
 	}
 }
 
@@ -212,6 +213,6 @@ func TestLibraryStore_Album_NotFound(t *testing.T) {
 	id := uuid.Must(uuid.NewV7())
 	_, err := s.Album(context.Background(), id)
 	if !errors.Is(err, library.ErrNotFound) {
-		t.Errorf("Album(ctx, %v) error = %v, want library.ErrNotFound", id, err)
+		t.Errorf("Album() error = %v, want library.ErrNotFound", err)
 	}
 }

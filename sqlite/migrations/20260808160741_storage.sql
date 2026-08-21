@@ -7,14 +7,18 @@ CREATE TABLE locations (
 );
 
 CREATE TABLE scans (
-    id          TEXT        PRIMARY KEY,
-    location_id TEXT        NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
-    generation  INTEGER     NOT NULL,
-    state       TEXT        NOT NULL DEFAULT 'running'
-                            CHECK (state IN ('running', 'done', 'failed', 'aborted')),
-    start_time  TIMESTAMP   NOT NULL,
-    finish_time TIMESTAMP,
-    error       TEXT
+    id              TEXT        PRIMARY KEY,
+    location_id     TEXT        NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+    generation      INTEGER     NOT NULL,
+    state           TEXT        NOT NULL DEFAULT 'running'
+                                CHECK (state IN ('running', 'done', 'failed', 'aborted')),
+    start_time      TIMESTAMP   NOT NULL,
+    finish_time     TIMESTAMP,
+    error           TEXT,
+    dirs_seen       INTEGER     NOT NULL DEFAULT 0,
+    dirs_missing    INTEGER     NOT NULL DEFAULT 0,
+    files_seen      INTEGER     NOT NULL DEFAULT 0,
+    files_missing   INTEGER     NOT NULL DEFAULT 0
 );
 
 CREATE TABLE dirs (
