@@ -61,7 +61,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	importer := &metadata.Importer{Library: sqlite.NewLibraryStore(db)}
+	libraryStore := sqlite.NewLibraryStore(db)
+	importer := &metadata.Importer{Library: libraryStore}
 
 	pipeline := &metadata.Pipeline{
 		Store:     parseQueueStore,
@@ -76,7 +77,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:    *addr,
-		Handler: rpc.NewHandler(logger, rpc.NewLibraryServer(sqlite.NewLibraryReadStore(db))),
+		Handler: rpc.NewHandler(logger, rpc.NewLibraryServer(libraryStore)),
 	}
 	serveErr := make(chan error, 1)
 	go func() {

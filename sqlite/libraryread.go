@@ -14,20 +14,14 @@ import (
 	"github.com/zachorosz/byom/library"
 )
 
-// LibraryReadStore serves the library's read surface: single-item
-// lookups and keyset-paginated listings.
-type LibraryReadStore struct {
-	db *sql.DB
-}
-
-func NewLibraryReadStore(db *sql.DB) *LibraryReadStore {
-	return &LibraryReadStore{db: db}
-}
+// This file holds LibraryStore's read surface: single-item lookups and
+// keyset-paginated listings. See library.go for the write surface and
+// type definition.
 
 const artistColumns = `id, name, sort_name`
 
 // Artist returns the artist with id, or library.ErrNotFound.
-func (s *LibraryReadStore) Artist(ctx context.Context, id uuid.UUID) (library.Artist, error) {
+func (s *LibraryStore) Artist(ctx context.Context, id uuid.UUID) (library.Artist, error) {
 	var a library.Artist
 	err := s.db.QueryRowContext(ctx,
 		`SELECT `+artistColumns+` FROM artists WHERE id = ?`, id).
@@ -44,7 +38,7 @@ func (s *LibraryReadStore) Artist(ctx context.Context, id uuid.UUID) (library.Ar
 // Artists returns a page of artists ordered by sort name, resuming
 // after token. The returned token fetches the next page and is empty
 // once the listing is exhausted.
-func (s *LibraryReadStore) Artists(ctx context.Context, token string, limit int) ([]library.Artist, string, error) {
+func (s *LibraryStore) Artists(ctx context.Context, token string, limit int) ([]library.Artist, string, error) {
 	limit = library.PageSize(limit)
 
 	q := `SELECT ` + artistColumns + ` FROM artists`
@@ -100,7 +94,7 @@ func scanAlbum(dst func(...any) error) (library.Album, error) {
 
 // Album returns the album with id and its credited artists, or
 // library.ErrNotFound.
-func (s *LibraryReadStore) Album(ctx context.Context, id uuid.UUID) (library.Album, error) {
+func (s *LibraryStore) Album(ctx context.Context, id uuid.UUID) (library.Album, error) {
 	row := s.db.QueryRowContext(ctx,
 		`SELECT `+albumColumns+` FROM albums a WHERE a.id = ?`, id)
 	al, err := scanAlbum(row.Scan)
@@ -123,7 +117,7 @@ func (s *LibraryReadStore) Album(ctx context.Context, id uuid.UUID) (library.Alb
 // token and restricted to artistID when it is not uuid.Nil. Each album
 // carries its credited artists. The returned token fetches the next
 // page and is empty once the listing is exhausted.
-func (s *LibraryReadStore) Albums(ctx context.Context, artistID uuid.UUID, token string, limit int) ([]library.Album, string, error) {
+func (s *LibraryStore) Albums(ctx context.Context, artistID uuid.UUID, token string, limit int) ([]library.Album, string, error) {
 	limit = library.PageSize(limit)
 
 	q := `SELECT ` + albumColumns + ` FROM albums a`
@@ -189,7 +183,7 @@ func (s *LibraryReadStore) Albums(ctx context.Context, artistID uuid.UUID, token
 
 // albumArtists returns the credited artists of each album in ids,
 // keyed by album ID and in credited order.
-func (s *LibraryReadStore) albumArtists(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID][]library.AlbumArtist, error) {
+func (s *LibraryStore) albumArtists(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID][]library.AlbumArtist, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -239,7 +233,7 @@ func scanTrack(dst func(...any) error) (library.Track, error) {
 
 // Track returns the track with id and its credits, or
 // library.ErrNotFound.
-func (s *LibraryReadStore) Track(ctx context.Context, id uuid.UUID) (library.Track, error) {
+func (s *LibraryStore) Track(ctx context.Context, id uuid.UUID) (library.Track, error) {
 	row := s.db.QueryRowContext(ctx,
 		`SELECT `+trackColumns+` FROM tracks WHERE id = ?`, id)
 	t, err := scanTrack(row.Scan)
@@ -262,7 +256,7 @@ func (s *LibraryReadStore) Track(ctx context.Context, id uuid.UUID) (library.Tra
 // after token and restricted to albumID when it is not uuid.Nil. Each
 // track carries its credits. The returned token fetches the next page
 // and is empty once the listing is exhausted.
-func (s *LibraryReadStore) Tracks(ctx context.Context, albumID uuid.UUID, token string, limit int) ([]library.Track, string, error) {
+func (s *LibraryStore) Tracks(ctx context.Context, albumID uuid.UUID, token string, limit int) ([]library.Track, string, error) {
 	limit = library.PageSize(limit)
 
 	q := `SELECT ` + trackColumns + ` FROM tracks`
@@ -342,7 +336,7 @@ func parseTrackCursor(cur []string) (disc, trackNo int, err error) {
 
 // trackCredits returns the credits of each track in ids, keyed by
 // track ID.
-func (s *LibraryReadStore) trackCredits(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID][]library.TrackCredit, error) {
+func (s *LibraryStore) trackCredits(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID][]library.TrackCredit, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}

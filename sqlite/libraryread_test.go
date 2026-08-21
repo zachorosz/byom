@@ -28,12 +28,12 @@ func seedLibrary(t *testing.T, db *sql.DB, artist library.Artist, titles ...stri
 	}
 }
 
-func TestLibraryReadStore_Artist(t *testing.T) {
+func TestLibraryStore_Artist(t *testing.T) {
 	ctx := context.Background()
 	db := newTestDB(t)
 	want := insertTestArtist(t, NewLibraryStore(db), "Artist A")
 
-	s := NewLibraryReadStore(db)
+	s := NewLibraryStore(db)
 	got, err := s.Artist(ctx, want.ID)
 	if err != nil {
 		t.Fatalf("Artist(ctx, %v) failed: %v", want.ID, err)
@@ -43,8 +43,8 @@ func TestLibraryReadStore_Artist(t *testing.T) {
 	}
 }
 
-func TestLibraryReadStore_Artist_NotFound(t *testing.T) {
-	s := NewLibraryReadStore(newTestDB(t))
+func TestLibraryStore_Artist_NotFound(t *testing.T) {
+	s := NewLibraryStore(newTestDB(t))
 
 	id := uuid.Must(uuid.NewV7())
 	_, err := s.Artist(context.Background(), id)
@@ -53,7 +53,7 @@ func TestLibraryReadStore_Artist_NotFound(t *testing.T) {
 	}
 }
 
-func TestLibraryReadStore_Artists_Paginates(t *testing.T) {
+func TestLibraryStore_Artists_Paginates(t *testing.T) {
 	ctx := context.Background()
 	db := newTestDB(t)
 	w := NewLibraryStore(db)
@@ -62,7 +62,7 @@ func TestLibraryReadStore_Artists_Paginates(t *testing.T) {
 	a := insertTestArtist(t, w, "Artist A")
 	b := insertTestArtist(t, w, "Artist B")
 
-	s := NewLibraryReadStore(db)
+	s := NewLibraryStore(db)
 	got, next, err := s.Artists(ctx, "", 2)
 	if err != nil {
 		t.Fatalf(`Artists(ctx, "", 2) failed: %v`, err)
@@ -86,8 +86,8 @@ func TestLibraryReadStore_Artists_Paginates(t *testing.T) {
 	}
 }
 
-func TestLibraryReadStore_Artists_InvalidToken(t *testing.T) {
-	s := NewLibraryReadStore(newTestDB(t))
+func TestLibraryStore_Artists_InvalidToken(t *testing.T) {
+	s := NewLibraryStore(newTestDB(t))
 
 	_, _, err := s.Artists(context.Background(), "not-a-token!", 10)
 	if !errors.Is(err, library.ErrInvalidPageToken) {
@@ -95,7 +95,7 @@ func TestLibraryReadStore_Artists_InvalidToken(t *testing.T) {
 	}
 }
 
-func TestLibraryReadStore_Albums_FiltersByArtist(t *testing.T) {
+func TestLibraryStore_Albums_FiltersByArtist(t *testing.T) {
 	ctx := context.Background()
 	db := newTestDB(t)
 	w := NewLibraryStore(db)
@@ -104,7 +104,7 @@ func TestLibraryReadStore_Albums_FiltersByArtist(t *testing.T) {
 	seedLibrary(t, db, a, "Album One", "Album Two")
 	seedLibrary(t, db, b, "Album Three")
 
-	s := NewLibraryReadStore(db)
+	s := NewLibraryStore(db)
 	got, next, err := s.Albums(ctx, a.ID, "", 10)
 	if err != nil {
 		t.Fatalf(`Albums(ctx, %v, "", 10) failed: %v`, a.ID, err)
@@ -128,13 +128,13 @@ func TestLibraryReadStore_Albums_FiltersByArtist(t *testing.T) {
 	}
 }
 
-func TestLibraryReadStore_Albums_Unfiltered(t *testing.T) {
+func TestLibraryStore_Albums_Unfiltered(t *testing.T) {
 	ctx := context.Background()
 	db := newTestDB(t)
 	a := insertTestArtist(t, NewLibraryStore(db), "Artist A")
 	seedLibrary(t, db, a, "Album One", "Album Two")
 
-	s := NewLibraryReadStore(db)
+	s := NewLibraryStore(db)
 	got, _, err := s.Albums(ctx, uuid.Nil, "", 10)
 	if err != nil {
 		t.Fatalf(`Albums(ctx, uuid.Nil, "", 10) failed: %v`, err)
@@ -144,7 +144,7 @@ func TestLibraryReadStore_Albums_Unfiltered(t *testing.T) {
 	}
 }
 
-func TestLibraryReadStore_Tracks_PaginatesInDiscOrder(t *testing.T) {
+func TestLibraryStore_Tracks_PaginatesInDiscOrder(t *testing.T) {
 	ctx := context.Background()
 	db := newTestDB(t)
 	w := NewLibraryStore(db)
@@ -159,7 +159,7 @@ func TestLibraryReadStore_Tracks_PaginatesInDiscOrder(t *testing.T) {
 	}
 	albumID := al.Album.ID
 
-	s := NewLibraryReadStore(db)
+	s := NewLibraryStore(db)
 	got, next, err := s.Tracks(ctx, albumID, "", 2)
 	if err != nil {
 		t.Fatalf(`Tracks(ctx, %v, "", 2) failed: %v`, albumID, err)
@@ -196,8 +196,8 @@ func trackNumbers(tracks []library.Track) []int {
 	return nums
 }
 
-func TestLibraryReadStore_Track_NotFound(t *testing.T) {
-	s := NewLibraryReadStore(newTestDB(t))
+func TestLibraryStore_Track_NotFound(t *testing.T) {
+	s := NewLibraryStore(newTestDB(t))
 
 	id := uuid.Must(uuid.NewV7())
 	_, err := s.Track(context.Background(), id)
@@ -206,8 +206,8 @@ func TestLibraryReadStore_Track_NotFound(t *testing.T) {
 	}
 }
 
-func TestLibraryReadStore_Album_NotFound(t *testing.T) {
-	s := NewLibraryReadStore(newTestDB(t))
+func TestLibraryStore_Album_NotFound(t *testing.T) {
+	s := NewLibraryStore(newTestDB(t))
 
 	id := uuid.Must(uuid.NewV7())
 	_, err := s.Album(context.Background(), id)

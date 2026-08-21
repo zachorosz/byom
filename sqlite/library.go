@@ -11,6 +11,9 @@ import (
 	"github.com/zachorosz/byom/metadata"
 )
 
+// LibraryStore persists and serves the music library: catalog writes
+// from imports (this file) and single-item lookups plus keyset-paginated
+// listings (libraryread.go).
 type LibraryStore struct {
 	db *sql.DB
 }
