@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package management.v1;
+
+import "buf/validate/validate.proto";
+import "management/v1/location.proto";
+import "management/v1/scan.proto";
+
+message CreateLocationRequest {
+  Location location = 1 [(buf.validate.field).required = true];
+}
+
+message CreateLocationResponse {
+  Location location = 1;
+}
+
+message ListLocationsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListLocationsResponse {
+  repeated Location items = 1;
+  string next_page_token = 2;
+}
+
+message GetLocationRequest {
+  string id = 1 [(buf.validate.field).required = true];
+}
+
+message GetLocationResponse {
+  Location location = 1;
+}
+
+message UpdateLocationRequest {
+  Location location = 1 [(buf.validate.field).required = true];
+}
+
+message UpdateLocationResponse {
+  Location location = 1;
+}
+
+message DeleteLocationRequest {
+  string id = 1 [(buf.validate.field).required = true];
+}
+
+message DeleteLocationResponse {
+}
+
+message ScanLocationRequest {
+  string location_id = 1 [(buf.validate.field).required = true];
+}
+
+message ScanLocationResponse {
+  Scan scan = 1;
+}
+
+message ListScansRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string location_id = 3;
+  ScanState state = 4;
+}
+
+message ListScansResponse {
+  repeated Scan items = 1;
+  string next_page_token = 2;
+}
+
+message GetScanRequest {
+  string id = 1 [(buf.validate.field).required = true];
+}
+
+message GetScanResponse {
+  Scan scan = 1;
+}
+
+message CancelScanRequest {
+  string id = 1;
+}
+
+message CancelScanResponse {
+}
+
+service ManagementService {
+  rpc CreateLocation(CreateLocationRequest) returns (CreateLocationResponse) {}
+  rpc ListLocations(ListLocationsRequest) returns (ListLocationsResponse) {}
+  rpc GetLocation(GetLocationRequest) returns (GetLocationResponse) {}
+  rpc UpdateLocation(UpdateLocationRequest) returns (UpdateLocationResponse) {}
+  rpc DeleteLocation(DeleteLocationRequest) returns (DeleteLocationResponse) {}
+
+  rpc ScanLocation(ScanLocationRequest) returns (ScanLocationResponse) {}
+  rpc ListScans(ListScansRequest) returns (ListScansResponse) {}
+  rpc GetScan(GetScanRequest) returns (GetScanResponse) {}
+  rpc CancelScan(CancelScanRequest) returns (CancelScanResponse) {}
+}

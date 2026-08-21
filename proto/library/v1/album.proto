@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package library.v1;
+
+enum AlbumType {
+  ALBUM_TYPE_UNSPECIFIED = 0;
+  ALBUM_TYPE_MAIN = 1;
+  ALBUM_TYPE_SINGLE = 2;
+  ALBUM_TYPE_EP = 3;
+  ALBUM_TYPE_OTHER = 4;
+}
+
+message Album {
+  string id = 1;
+
+  string title = 2;
+  AlbumType album_type = 3;
+  string release_date = 4;
+  string original_release_date = 5;
+  string release_country = 6;
+  string media = 7;
+
+  bool bootleg = 14;
+  bool compilation = 15;
+  bool live = 16;
+
+  string group_key = 17;
+  string version = 18;
+  bool primary_version = 19;
+
+  repeated AlbumArtist artists = 20;
+}
+
+message AlbumArtist {
+  string artist_id = 1;
+  string credited_name = 2;
+}

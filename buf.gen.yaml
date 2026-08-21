@@ -1,0 +1,20 @@
+version: v2
+inputs:
+  - directory: proto
+plugins:
+  - local: [go, tool, protoc-gen-go]
+    out: proto
+    opt: paths=source_relative
+  - local: [go, tool, protoc-gen-connect-go]
+    out: proto
+    opt:
+      - paths=source_relative
+      - simple
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/zachorosz/byom/proto
+  disable:
+    - file_option: go_package
+      module: buf.build/bufbuild/protovalidate

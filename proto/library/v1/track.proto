@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package library.v1;
+
+import "google/protobuf/duration.proto";
+
+message AudioProperties {
+  string codec = 1;
+  int64 sample_rate = 2;
+  int64 bit_depth = 3;
+  int64 bitrate = 4;
+  int64 channels = 5;
+}
+
+message Track {
+  string id = 1;
+  string album_id = 2;
+
+  string title = 3;
+  int32 disc_number = 4;
+  string disc_subtitle = 5;
+  int32 track_number = 6;
+  string release_date = 7;
+  string original_release_date = 8;
+  string recording_location = 9;
+  string recording_date = 10;
+  bool live = 11;
+
+  google.protobuf.Duration duration = 18;
+  AudioProperties audio = 19;
+
+  repeated TrackCredit credits = 20;
+}
+
+message TrackCredit {
+  string artist_id = 1;
+  string credited_name = 2;
+  string role = 3;
+}
