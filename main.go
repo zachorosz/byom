@@ -88,8 +88,10 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Addr:    *addr,
-		Handler: rpc.NewHandler(logger, rpc.NewLibraryServer(libraryStore)),
+		Addr: *addr,
+		Handler: rpc.NewHandler(logger,
+			rpc.NewLibraryServer(libraryStore),
+			rpc.NewManagementServer(scanner, locations)),
 	}
 	serveErr := make(chan error, 1)
 	go func() {

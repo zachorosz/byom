@@ -1,10 +1,17 @@
 package rpc
 
 import (
+	"fmt"
+
+	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/zachorosz/byom/library"
 	libraryv1 "github.com/zachorosz/byom/proto/library/v1"
+	managementv1 "github.com/zachorosz/byom/proto/management/v1"
+	"github.com/zachorosz/byom/scan"
+	"github.com/zachorosz/byom/storage"
 )
 
 var albumTypes = map[library.AlbumType]libraryv1.AlbumType{
@@ -73,4 +80,70 @@ func trackProto(t library.Track) *libraryv1.Track {
 		})
 	}
 	return pb
+}
+
+var scanStates = map[scan.State]managementv1.ScanState{
+	scan.StateRunning:    managementv1.ScanState_SCAN_STATE_RUNNING,
+	scan.StateCancelling: managementv1.ScanState_SCAN_STATE_CANCELLING,
+	scan.StateDone:       managementv1.ScanState_SCAN_STATE_DONE,
+	scan.StateFailed:     managementv1.ScanState_SCAN_STATE_FAILED,
+	scan.StateAborted:    managementv1.ScanState_SCAN_STATE_ABORTED,
+}
+
+// scanState maps a requested filter to a domain state, treating the
+// unspecified enum value as no filter.
+func scanState(pb managementv1.ScanState) scan.State {
+	for state, v := range scanStates {
+		if v == pb {
+			return state
+		}
+	}
+	return ""
+}
+
+func scanProto(sc scan.Scan) *managementv1.Scan {
+	pb := &managementv1.Scan{
+		Id:         sc.ID.String(),
+		LocationId: sc.LocationID.String(),
+		State:      scanStates[sc.State],
+		StartTime:  timestamppb.New(sc.StartTime),
+		Error:      sc.Error,
+		Progress: &managementv1.Scan_Progress{
+			DirsSeen:     sc.Progress.DirsSeen,
+			DirsMissing:  sc.Progress.DirsMissing,
+			FilesSeen:    sc.Progress.FilesSeen,
+			FilesMissing: sc.Progress.FilesMissing,
+		},
+	}
+	if !sc.FinishTime.IsZero() {
+		pb.FinishTime = timestamppb.New(sc.FinishTime)
+	}
+	return pb
+}
+
+func locationProto(loc storage.Location) *managementv1.Location {
+	return &managementv1.Location{
+		Id:   loc.ID.String(),
+		Path: loc.URI,
+	}
+}
+
+// locationFromProto converts a request's location and validates its
+// path. A zero ID stays uuid.Nil for the caller to fill or reject.
+func locationFromProto(pb *managementv1.Location) (storage.Location, error) {
+	loc := storage.Location{URI: pb.GetPath()}
+	if id := pb.GetId(); id != "" {
+		parsed, err := parseID("location.id", id)
+		if err != nil {
+			return storage.Location{}, err
+		}
+		loc.ID = parsed
+	}
+	// Root rejects unsupported schemes, remote hosts, and empty paths,
+	// so a location that cannot be scanned never reaches the store.
+	if _, err := loc.Root(); err != nil {
+		return storage.Location{}, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("location.path: %w", err))
+	}
+	return loc, nil
 }
