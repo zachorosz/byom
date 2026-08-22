@@ -180,6 +180,7 @@ func (s *Scanner) Start(ctx context.Context, locationID uuid.UUID) (Scan, error)
 
 	gen, scanID, err := s.Store.BeginScan(ctx, locationID)
 	if err != nil {
+		cancel()
 		s.release(r)
 		return Scan{}, fmt.Errorf("begin scan: %w", err)
 	}
