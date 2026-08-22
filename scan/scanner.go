@@ -244,10 +244,11 @@ func (s *Scanner) runScan(ctx context.Context, r *run) {
 // into their parent album dirs, and marks unseen items missing only if
 // the walk completed.
 func (s *Scanner) sync(ctx context.Context, r *run) error {
-	dirs := make(chan walkResult, 32)
+	workers := s.workerCount()
+	dirs := make(chan walkResult, workers)
 	g, gctx := errgroup.WithContext(ctx)
 
-	for range s.workerCount() {
+	for range workers {
 		g.Go(func() error {
 			return s.syncWorker(gctx, r, dirs)
 		})
