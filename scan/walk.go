@@ -104,31 +104,21 @@ func newDiscMerger(emit func(walkResult) error) *discMerger {
 	}
 }
 
+// process buffers disc dirs (Album/CD1) and folds them into their
+// parent album when the post-order walk reaches it, so an album emits
+// once with its discs' files prefixed by the disc folder name.
 func (dm *discMerger) process(res walkResult) error {
-	if isDisc(res.dir) { // ex: Album/CD1
-		// buffer disc dir; will be merged when parent arrives.
+	if isDisc(res.dir) {
 		dm.pending[res.dir] = res
 		return nil
 	}
-	// res is anchor (Album/)
 
-	// collect any child discs
-	var discs []walkResult
 	for dir, disc := range dm.pending {
-		parent := path.Dir(dir)
-		if parent == res.dir {
-			discs = append(discs, disc)
-			delete(dm.pending, dir)
+		if path.Dir(dir) != res.dir {
+			continue
 		}
-	}
+		delete(dm.pending, dir)
 
-	if len(discs) == 0 {
-		// flat album; pass it through
-		return dm.emit(res)
-	}
-
-	// merge discs into this parent
-	for _, disc := range discs {
 		discName := filepath.Base(disc.dir)
 		for _, f := range disc.files {
 			res.files = append(res.files, walkEntry{

@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/zachorosz/byom/library"
+	"github.com/zachorosz/byom/page"
 )
 
 // This file holds LibraryStore's read surface: single-item lookups and
@@ -39,12 +40,12 @@ func (s *LibraryStore) Artist(ctx context.Context, id uuid.UUID) (library.Artist
 // after token. The returned token fetches the next page and is empty
 // once the listing is exhausted.
 func (s *LibraryStore) Artists(ctx context.Context, token string, limit int) ([]library.Artist, string, error) {
-	limit = library.PageSize(limit)
+	limit = page.Size(limit)
 
 	q := `SELECT ` + artistColumns + ` FROM artists`
 	var args []any
 	if token != "" {
-		cur, err := library.DecodePageToken(token, 2)
+		cur, err := page.DecodeToken(token, 2)
 		if err != nil {
 			return nil, "", err
 		}
@@ -77,7 +78,7 @@ func (s *LibraryStore) Artists(ctx context.Context, token string, limit int) ([]
 	}
 	artists = artists[:limit]
 	last := artists[limit-1]
-	return artists, library.EncodePageToken(last.SortName, last.ID.String()), nil
+	return artists, page.EncodeToken(last.SortName, last.ID.String()), nil
 }
 
 const albumColumns = `a.id, a.dir_id, a.title, a.album_type, a.release_date,
@@ -118,7 +119,7 @@ func (s *LibraryStore) Album(ctx context.Context, id uuid.UUID) (library.Album, 
 // carries its credited artists. The returned token fetches the next
 // page and is empty once the listing is exhausted.
 func (s *LibraryStore) Albums(ctx context.Context, artistID uuid.UUID, token string, limit int) ([]library.Album, string, error) {
-	limit = library.PageSize(limit)
+	limit = page.Size(limit)
 
 	q := `SELECT ` + albumColumns + ` FROM albums a`
 	var args []any
@@ -129,7 +130,7 @@ func (s *LibraryStore) Albums(ctx context.Context, artistID uuid.UUID, token str
 		args = append(args, artistID)
 	}
 	if token != "" {
-		cur, err := library.DecodePageToken(token, 2)
+		cur, err := page.DecodeToken(token, 2)
 		if err != nil {
 			return nil, "", err
 		}
@@ -164,7 +165,7 @@ func (s *LibraryStore) Albums(ctx context.Context, artistID uuid.UUID, token str
 	if len(albums) > limit {
 		albums = albums[:limit]
 		last := albums[limit-1]
-		next = library.EncodePageToken(last.Title, last.ID.String())
+		next = page.EncodeToken(last.Title, last.ID.String())
 	}
 
 	ids := make([]uuid.UUID, len(albums))
@@ -257,7 +258,7 @@ func (s *LibraryStore) Track(ctx context.Context, id uuid.UUID) (library.Track, 
 // track carries its credits. The returned token fetches the next page
 // and is empty once the listing is exhausted.
 func (s *LibraryStore) Tracks(ctx context.Context, albumID uuid.UUID, token string, limit int) ([]library.Track, string, error) {
-	limit = library.PageSize(limit)
+	limit = page.Size(limit)
 
 	q := `SELECT ` + trackColumns + ` FROM tracks`
 	var args []any
@@ -267,7 +268,7 @@ func (s *LibraryStore) Tracks(ctx context.Context, albumID uuid.UUID, token stri
 		args = append(args, albumID)
 	}
 	if token != "" {
-		cur, err := library.DecodePageToken(token, 3)
+		cur, err := page.DecodeToken(token, 3)
 		if err != nil {
 			return nil, "", err
 		}
@@ -306,7 +307,7 @@ func (s *LibraryStore) Tracks(ctx context.Context, albumID uuid.UUID, token stri
 	if len(tracks) > limit {
 		tracks = tracks[:limit]
 		last := tracks[limit-1]
-		next = library.EncodePageToken(
+		next = page.EncodeToken(
 			strconv.Itoa(last.DiscNumber), strconv.Itoa(last.TrackNumber), last.ID.String())
 	}
 
@@ -326,10 +327,10 @@ func (s *LibraryStore) Tracks(ctx context.Context, albumID uuid.UUID, token stri
 
 func parseTrackCursor(cur []string) (disc, trackNo int, err error) {
 	if disc, err = strconv.Atoi(cur[0]); err != nil {
-		return 0, 0, fmt.Errorf("%w: disc number: %v", library.ErrInvalidPageToken, err)
+		return 0, 0, fmt.Errorf("%w: disc number: %v", page.ErrInvalidToken, err)
 	}
 	if trackNo, err = strconv.Atoi(cur[1]); err != nil {
-		return 0, 0, fmt.Errorf("%w: track number: %v", library.ErrInvalidPageToken, err)
+		return 0, 0, fmt.Errorf("%w: track number: %v", page.ErrInvalidToken, err)
 	}
 	return disc, trackNo, nil
 }

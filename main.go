@@ -75,6 +75,18 @@ func main() {
 	pipelineErr := make(chan error, 1)
 	go func() { pipelineErr <- pipeline.Run(ctx) }()
 
+	scanner := &scan.Scanner{
+		Store:     scanStore,
+		Locations: locations,
+		Workers:   4,
+		OnDirty:   pipeline.Wake,
+		Logger:    logger,
+	}
+	if err := scanner.Recover(ctx); err != nil {
+		logger.Error("recover scans failed", slog.Any("error", err))
+		os.Exit(1)
+	}
+
 	srv := &http.Server{
 		Addr:    *addr,
 		Handler: rpc.NewHandler(logger, rpc.NewLibraryServer(libraryStore)),
@@ -85,21 +97,8 @@ func main() {
 		serveErr <- srv.ListenAndServe()
 	}()
 
-	root, err := loc.Root()
-	if err != nil {
-		logger.Error("resolve location root failed", slog.Any("error", err))
-		os.Exit(1)
-	}
-
-	scanner := &scan.Scanner{
-		Store:   scanStore,
-		Workers: 4,
-	}
-	if err := scanner.Scan(ctx, os.DirFS(root), loc); err != nil {
-		logger.Error("scan failed", slog.Any("error", err), slog.String("location_id", loc.ID.String()))
-	} else {
-		logger.Info("scan complete!", slog.String("location_id", loc.ID.String()))
-		pipeline.Wake()
+	if _, err := scanner.Start(ctx, loc.ID); err != nil {
+		logger.Error("start scan failed", slog.Any("error", err), slog.String("location_id", loc.ID.String()))
 	}
 
 	select {
@@ -109,10 +108,13 @@ func main() {
 		stop()
 	}
 
-	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		logger.Warn("rpc server shutdown failed", slog.Any("error", err))
+	}
+	if err := scanner.Shutdown(shutdownCtx); err != nil {
+		logger.Warn("scanner shutdown failed", slog.Any("error", err))
 	}
 
 	if err := <-pipelineErr; err != nil && !errors.Is(err, context.Canceled) {

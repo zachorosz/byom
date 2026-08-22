@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/zachorosz/byom/storage"
 )
@@ -22,28 +21,7 @@ type SyncPayload struct {
 	Dirty bool
 }
 
-func (s *Scanner) startSyncPool(
-	ctx context.Context,
-	workers int,
-	locationID uuid.UUID,
-	gen int64,
-	in <-chan walkResult,
-) *errgroup.Group {
-	g, gctx := errgroup.WithContext(ctx)
-	for range workers {
-		g.Go(func() error {
-			return s.runSyncWorker(gctx, locationID, gen, in)
-		})
-	}
-	return g
-}
-
-func (s *Scanner) runSyncWorker(
-	ctx context.Context,
-	locationID uuid.UUID,
-	gen int64,
-	in <-chan walkResult,
-) error {
+func (s *Scanner) syncWorker(ctx context.Context, r *run, in <-chan walkResult) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -52,35 +30,47 @@ func (s *Scanner) runSyncWorker(
 			if !ok {
 				return nil
 			}
-
-			known := map[string]storage.File{}
-
-			dirID, err := s.Store.DirID(ctx, locationID, res.dir)
-			if err != nil && !errors.Is(err, storage.ErrNotExists) {
+			if err := s.syncDir(ctx, r, res); err != nil {
 				return err
-			}
-			if err == nil {
-				known, err = s.Store.KnownFiles(ctx, dirID)
-				if err != nil {
-					return err
-				}
-			}
-
-			payload := SyncPayload{
-				LocationID: locationID,
-				RelPath:    res.dir,
-				Generation: gen,
-			}
-			payload.Changed, payload.Missing, payload.Dirty = computeChangeset(known, res)
-
-			if _, err := s.Store.SyncDir(ctx, payload); err != nil {
-				return err
-			}
-			if payload.Dirty && s.OnDirty != nil {
-				s.OnDirty()
 			}
 		}
 	}
+}
+
+// syncDir writes one walked dir's change set to the store and counts it.
+func (s *Scanner) syncDir(ctx context.Context, r *run, res walkResult) error {
+	known := map[string]storage.File{}
+
+	dirID, err := s.Store.DirID(ctx, r.locationID, res.dir)
+	if err != nil && !errors.Is(err, storage.ErrNotExists) {
+		return err
+	}
+	if err == nil {
+		known, err = s.Store.KnownFiles(ctx, dirID)
+		if err != nil {
+			return err
+		}
+	}
+
+	payload := SyncPayload{
+		LocationID: r.locationID,
+		RelPath:    res.dir,
+		Generation: r.gen,
+	}
+	payload.Changed, payload.Missing, payload.Dirty = computeChangeset(known, res)
+
+	if _, err := s.Store.SyncDir(ctx, payload); err != nil {
+		return err
+	}
+
+	r.dirsSeen.Add(1)
+	r.filesSeen.Add(int64(len(res.files)))
+	r.filesMissing.Add(int64(len(payload.Missing)))
+
+	if payload.Dirty && s.OnDirty != nil {
+		s.OnDirty()
+	}
+	return nil
 }
 
 func computeChangeset(
@@ -116,6 +106,5 @@ func computeChangeset(
 	for _, leftover := range known {
 		missing = append(missing, leftover.ID)
 	}
-	dirty = len(missing) > 0 || len(changed) > 0
-	return
+	return changed, missing, len(missing) > 0 || len(changed) > 0
 }
