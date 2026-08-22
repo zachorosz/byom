@@ -18,9 +18,6 @@ import (
 	"github.com/zachorosz/byom/storage"
 )
 
-// State is a scan's lifecycle state. All but StateCancelling are
-// persisted; cancelling lives only in memory, between a cancel request
-// and the scan unwinding.
 type State string
 
 const (
@@ -52,7 +49,7 @@ type Progress struct {
 }
 
 // run is one scan in flight: its filesystem, identity, cancellation,
-// and live counters. Scanner owns the shared configuration and store.
+// and live counters.
 type run struct {
 	scanID     uuid.UUID
 	locationID uuid.UUID
@@ -243,7 +240,7 @@ func (s *Scanner) runScan(ctx context.Context, r *run) {
 
 // sync walks the run's filesystem post-order, merging disc folders
 // into their parent album dirs, and marks unseen items missing only if
-// the walk completed. The counts land on the run either way.
+// the walk completed.
 func (s *Scanner) sync(ctx context.Context, r *run) error {
 	dirs := make(chan walkResult, 32)
 	g, gctx := errgroup.WithContext(ctx)
