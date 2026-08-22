@@ -234,7 +234,9 @@ func markMissingFiles(ctx context.Context, tx *sql.Tx, files []uuid.UUID) (int64
 }
 
 func (s *ScanStore) AbortRunningScans(ctx context.Context) (int64, error) {
-	res, err := s.db.ExecContext(ctx, `UPDATE scans SET state='aborted' WHERE state IN ('running', 'cancelling')`)
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE scans SET state='aborted', finish_time=? WHERE state IN ('running', 'cancelling')`,
+		time.Now().UTC())
 	if err != nil {
 		return 0, err
 	}
