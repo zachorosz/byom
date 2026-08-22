@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/zachorosz/byom/page"
+	"github.com/zachorosz/byom/scan"
 	"github.com/zachorosz/byom/storage"
 )
 
@@ -95,12 +96,22 @@ func (s *LocationStore) Locations(ctx context.Context, token string, limit int) 
 	return locations, page.EncodeToken(locations[limit-1].ID.String()), nil
 }
 
-// Update replaces a location's URI. It returns storage.ErrNotExists if
-// no such location exists, or storage.ErrExists if another location
-// already uses the URI.
+// Update replaces a location's URI. It fails with storage.ErrNotExists
+// if the location doesn't exist, storage.ErrExists if the URI is
+// already used, or scan.ErrScanRunning if a scan is in progress.
 func (s *LocationStore) Update(ctx context.Context, loc storage.Location) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("update location: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := errIfScanRunning(ctx, tx, loc.ID); err != nil {
+		return err
+	}
+
 	var id uuid.UUID
-	err := s.db.QueryRowContext(ctx,
+	err = tx.QueryRowContext(ctx,
 		`UPDATE locations SET uri = ? WHERE id = ? RETURNING id`,
 		loc.URI, loc.ID).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -112,14 +123,24 @@ func (s *LocationStore) Update(ctx context.Context, loc storage.Location) error 
 		}
 		return fmt.Errorf("update location: %w", err)
 	}
-	return nil
+	return tx.Commit()
 }
 
-// Delete removes a location and, by cascade, every dir, file, and
-// library row derived from it. It returns storage.ErrNotExists if no
-// such location exists.
+// Delete removes a location and everything scanned from it. It fails
+// with storage.ErrNotExists if the location doesn't exist, or
+// scan.ErrScanRunning if a scan is in progress.
 func (s *LocationStore) Delete(ctx context.Context, id uuid.UUID) error {
-	res, err := s.db.ExecContext(ctx, `DELETE FROM locations WHERE id = ?`, id)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("delete location: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := errIfScanRunning(ctx, tx, id); err != nil {
+		return err
+	}
+
+	res, err := tx.ExecContext(ctx, `DELETE FROM locations WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("delete location: %w", err)
 	}
@@ -130,5 +151,22 @@ func (s *LocationStore) Delete(ctx context.Context, id uuid.UUID) error {
 	if n == 0 {
 		return fmt.Errorf("location %s: %w", id, storage.ErrNotExists)
 	}
-	return nil
+	return tx.Commit()
+}
+
+// errIfScanRunning reports scan.ErrScanRunning if locationID has a scan
+// in the 'running' state.
+func errIfScanRunning(ctx context.Context, tx *sql.Tx, locationID uuid.UUID) error {
+	var exists int
+	err := tx.QueryRowContext(ctx,
+		`SELECT 1 FROM scans WHERE location_id = ? AND state = 'running' LIMIT 1`,
+		locationID).Scan(&exists)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil
+	case err != nil:
+		return fmt.Errorf("check running scan: %w", err)
+	default:
+		return fmt.Errorf("location %s: %w", locationID, scan.ErrScanRunning)
+	}
 }

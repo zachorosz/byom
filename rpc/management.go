@@ -3,7 +3,6 @@ package rpc
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -98,16 +97,10 @@ func (s *ManagementServer) UpdateLocation(ctx context.Context, req *managementv1
 			errors.New("location.id: value is required"))
 	}
 
-	running, _, err := s.scans.Scans(ctx, loc.ID, scan.StateRunning, "", 1)
-	if err != nil {
-		return nil, rpcError(err)
-	}
-	if len(running) > 0 {
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("location %s: %w", loc.ID, scan.ErrScanRunning))
-	}
-
 	if err := s.locations.Update(ctx, loc); err != nil {
+		if errors.Is(err, scan.ErrScanRunning) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
 		return nil, rpcError(err)
 	}
 	return &managementv1.UpdateLocationResponse{Location: locationProto(loc)}, nil
@@ -119,18 +112,10 @@ func (s *ManagementServer) DeleteLocation(ctx context.Context, req *managementv1
 		return nil, err
 	}
 
-	// Deleting a location cascades to every dir, file, and library row
-	// scanned from it, so refuse while a scan is still writing them.
-	running, _, err := s.scans.Scans(ctx, id, scan.StateRunning, "", 1)
-	if err != nil {
-		return nil, rpcError(err)
-	}
-	if len(running) > 0 {
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("location %s: %w", id, scan.ErrScanRunning))
-	}
-
 	if err := s.locations.Delete(ctx, id); err != nil {
+		if errors.Is(err, scan.ErrScanRunning) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
 		return nil, rpcError(err)
 	}
 	return &managementv1.DeleteLocationResponse{}, nil

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/zachorosz/byom/page"
+	"github.com/zachorosz/byom/scan"
 	"github.com/zachorosz/byom/storage"
 )
 
@@ -110,6 +111,37 @@ func TestLocationStore_Update_DuplicateURI(t *testing.T) {
 	err := s.Update(context.Background(), second)
 	if !errors.Is(err, storage.ErrExists) {
 		t.Errorf("Update() error = %v, want storage.ErrExists", err)
+	}
+}
+
+func TestLocationStore_Update_ScanRunning(t *testing.T) {
+	ctx := context.Background()
+	db := newTestDB(t)
+	s := NewLocationStore(db)
+	loc := insertTestLocation(t, s, "file:///music")
+	if _, _, err := NewScanStore(db).BeginScan(ctx, loc.ID); err != nil {
+		t.Fatalf("BeginScan() failed: %v", err)
+	}
+
+	loc.URI = "file:///moved"
+	err := s.Update(ctx, loc)
+	if !errors.Is(err, scan.ErrScanRunning) {
+		t.Errorf("Update() error = %v, want scan.ErrScanRunning", err)
+	}
+}
+
+func TestLocationStore_Delete_ScanRunning(t *testing.T) {
+	ctx := context.Background()
+	db := newTestDB(t)
+	s := NewLocationStore(db)
+	loc := insertTestLocation(t, s, "file:///music")
+	if _, _, err := NewScanStore(db).BeginScan(ctx, loc.ID); err != nil {
+		t.Fatalf("BeginScan() failed: %v", err)
+	}
+
+	err := s.Delete(ctx, loc.ID)
+	if !errors.Is(err, scan.ErrScanRunning) {
+		t.Errorf("Delete() error = %v, want scan.ErrScanRunning", err)
 	}
 }
 

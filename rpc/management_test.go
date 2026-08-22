@@ -448,9 +448,7 @@ func TestManagementServer_UpdateLocation(t *testing.T) {
 
 func TestManagementServer_UpdateLocation_RefusesWhileScanning(t *testing.T) {
 	id := uuid.Must(uuid.NewV7())
-	locations := &fakeLocations{}
-	scanner := &fakeScanner{scans: []scan.Scan{{State: scan.StateRunning}}}
-	client := newTestManagementClient(t, scanner, locations)
+	client := newTestManagementClient(t, &fakeScanner{}, &fakeLocations{err: scan.ErrScanRunning})
 
 	req := &managementv1.UpdateLocationRequest{
 		Location: &managementv1.Location{Id: id.String(), Path: "file:///moved"},
@@ -458,9 +456,6 @@ func TestManagementServer_UpdateLocation_RefusesWhileScanning(t *testing.T) {
 	_, err := client.UpdateLocation(context.Background(), req)
 	if got := connect.CodeOf(err); got != connect.CodeFailedPrecondition {
 		t.Errorf("UpdateLocation() code = %v, want %v (err: %v)", got, connect.CodeFailedPrecondition, err)
-	}
-	if got := locations.gotID; got != uuid.Nil {
-		t.Errorf("Update(%v) was called, want no call", got)
 	}
 }
 
@@ -518,17 +513,12 @@ func TestManagementServer_DeleteLocation(t *testing.T) {
 }
 
 func TestManagementServer_DeleteLocation_RefusesWhileScanning(t *testing.T) {
-	locations := &fakeLocations{}
-	scanner := &fakeScanner{scans: []scan.Scan{{State: scan.StateRunning}}}
-	client := newTestManagementClient(t, scanner, locations)
+	client := newTestManagementClient(t, &fakeScanner{}, &fakeLocations{err: scan.ErrScanRunning})
 
 	req := &managementv1.DeleteLocationRequest{Id: uuid.Must(uuid.NewV7()).String()}
 	_, err := client.DeleteLocation(context.Background(), req)
 	if got := connect.CodeOf(err); got != connect.CodeFailedPrecondition {
 		t.Errorf("DeleteLocation() code = %v, want %v (err: %v)", got, connect.CodeFailedPrecondition, err)
-	}
-	if got := locations.gotID; got != uuid.Nil {
-		t.Errorf("Delete(%v) was called, want no call", got)
 	}
 }
 
