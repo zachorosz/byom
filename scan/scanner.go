@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"runtime"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -321,6 +322,10 @@ func (s *Scanner) Scan(ctx context.Context, id uuid.UUID) (Scan, error) {
 // Scans returns a page of scans, newest first, optionally restricted
 // to a location and a state.
 func (s *Scanner) Scans(ctx context.Context, locationID uuid.UUID, state State, token string, limit int) ([]Scan, string, error) {
+	if state == StateCancelling {
+		return s.cancellingScans(ctx, locationID, limit)
+	}
+
 	scans, next, err := s.Store.Scans(ctx, locationID, state, token, limit)
 	if err != nil {
 		return nil, "", err
@@ -329,6 +334,34 @@ func (s *Scanner) Scans(ctx context.Context, locationID uuid.UUID, state State, 
 		scans[i] = s.overlay(scans[i])
 	}
 	return scans, next, nil
+}
+
+// cancellingScans returns every scan currently unwinding after a
+// cancel request, optionally restricted to a location.
+func (s *Scanner) cancellingScans(ctx context.Context, locationID uuid.UUID, limit int) ([]Scan, string, error) {
+	s.mu.Lock()
+	var ids []uuid.UUID
+	for id, r := range s.byScan {
+		if r.cancelling.Load() && (locationID == uuid.Nil || r.locationID == locationID) {
+			ids = append(ids, id)
+		}
+	}
+	s.mu.Unlock()
+
+	scans := make([]Scan, 0, len(ids))
+	for _, id := range ids {
+		sc, err := s.Scan(ctx, id)
+		if err != nil {
+			return nil, "", err
+		}
+		scans = append(scans, sc)
+	}
+	slices.SortFunc(scans, func(a, b Scan) int { return b.StartTime.Compare(a.StartTime) })
+
+	if limit > 0 && len(scans) > limit {
+		scans = scans[:limit]
+	}
+	return scans, "", nil
 }
 
 // Shutdown cancels every running scan and waits for them to record how

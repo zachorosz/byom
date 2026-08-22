@@ -362,6 +362,38 @@ func TestScannerCancel(t *testing.T) {
 	}
 }
 
+func TestScannerScansFiltersCancellingState(t *testing.T) {
+	ctx := context.Background()
+	release := make(chan struct{})
+	store := newFakeScanStore()
+	store.syncDir = syncUntilReleased(release)
+	store.finishGate = make(chan struct{})
+	s, locationID := newScannerWithTestLibrary(t, store)
+	t.Cleanup(func() {
+		close(store.finishGate)
+		s.Shutdown(ctx)
+	})
+
+	started, err := s.Start(ctx, locationID)
+	if err != nil {
+		t.Fatalf("Start() returned an unexpected error: %v", err)
+	}
+	if err := s.Cancel(ctx, started.ID); err != nil {
+		t.Fatalf("Cancel() returned an unexpected error: %v", err)
+	}
+
+	got, _, err := s.Scans(ctx, uuid.Nil, StateCancelling, "", 0)
+	if err != nil {
+		t.Fatalf("Scans() returned an unexpected error: %v", err)
+	}
+	if len(got) != 1 || got[0].ID != started.ID {
+		t.Errorf("Scans(StateCancelling) = %+v, want [%s]", got, started.ID)
+	}
+	if got[0].State != StateCancelling {
+		t.Errorf("Scans(StateCancelling)[0].State = %q, want %q", got[0].State, StateCancelling)
+	}
+}
+
 func TestScannerCancelFinishedScan(t *testing.T) {
 	ctx := context.Background()
 	s, locationID := newScannerWithTestLibrary(t, newFakeScanStore())
