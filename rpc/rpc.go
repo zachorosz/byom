@@ -1,7 +1,3 @@
-// Package rpc implements byom's Connect services. It is the only
-// package that speaks protobuf: handlers translate requests into calls
-// on the domain packages and convert their results back, so no
-// business logic lives here.
 package rpc
 
 import (
@@ -13,12 +9,10 @@ import (
 	"connectrpc.com/validate"
 
 	"github.com/zachorosz/byom/proto/library/v1/libraryv1connect"
+	"github.com/zachorosz/byom/proto/management/v1/managementv1connect"
 )
 
-// NewHandler mounts the Connect services on a mux with the default
-// interceptor stack: protovalidate on every request, panic recovery,
-// and error logging.
-func NewHandler(logger *slog.Logger, lib *LibraryServer) http.Handler {
+func NewHandler(logger *slog.Logger, lib *LibraryServer, mgmt *ManagementServer) http.Handler {
 	opts := []connect.HandlerOption{
 		connect.WithInterceptors(validate.NewInterceptor(), logErrors(logger)),
 		connect.WithRecover(func(_ context.Context, spec connect.Spec, _ http.Header, p any) error {
@@ -29,11 +23,10 @@ func NewHandler(logger *slog.Logger, lib *LibraryServer) http.Handler {
 
 	mux := http.NewServeMux()
 	mux.Handle(libraryv1connect.NewLibraryServiceHandler(lib, opts...))
+	mux.Handle(managementv1connect.NewManagementServiceHandler(mgmt, opts...))
 	return mux
 }
 
-// logErrors records failed calls with the detail the client sees, so a
-// CodeInternal response is traceable server-side.
 func logErrors(logger *slog.Logger) connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {

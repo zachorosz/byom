@@ -10,6 +10,8 @@ import (
 
 	"github.com/zachorosz/byom/library"
 	"github.com/zachorosz/byom/page"
+	"github.com/zachorosz/byom/scan"
+	"github.com/zachorosz/byom/storage"
 )
 
 var errPanic = errors.New("internal error")
@@ -20,10 +22,14 @@ func rpcError(err error) error {
 	switch {
 	case err == nil:
 		return nil
-	case errors.Is(err, library.ErrNotFound):
+	case errors.Is(err, library.ErrNotFound), errors.Is(err, storage.ErrNotExists):
 		return connect.NewError(connect.CodeNotFound, err)
 	case errors.Is(err, page.ErrInvalidToken):
 		return connect.NewError(connect.CodeInvalidArgument, err)
+	case errors.Is(err, storage.ErrExists), errors.Is(err, scan.ErrScanRunning):
+		return connect.NewError(connect.CodeAlreadyExists, err)
+	case errors.Is(err, scan.ErrNotRunning):
+		return connect.NewError(connect.CodeFailedPrecondition, err)
 	case errors.Is(err, context.Canceled):
 		return connect.NewError(connect.CodeCanceled, err)
 	case errors.Is(err, context.DeadlineExceeded):

@@ -76,7 +76,7 @@ func (f *fakeLibrary) Tracks(_ context.Context, albumID uuid.UUID, token string,
 func newTestClient(t *testing.T, store LibraryReader) libraryv1connect.LibraryServiceClient {
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	srv := httptest.NewServer(NewHandler(logger, NewLibraryServer(store)))
+	srv := httptest.NewServer(NewHandler(logger, NewLibraryServer(store), NewManagementServer(nil, nil)))
 	t.Cleanup(srv.Close)
 	return libraryv1connect.NewLibraryServiceClient(srv.Client(), srv.URL)
 }
@@ -107,25 +107,25 @@ func TestLibraryServer_GetArtist_Errors(t *testing.T) {
 		want  connect.Code
 	}{
 		{
-			name:  "missing id",
+			name:  "missingID",
 			id:    "",
 			store: &fakeLibrary{},
 			want:  connect.CodeInvalidArgument,
 		},
 		{
-			name:  "malformed id",
+			name:  "malformedID",
 			id:    "not-a-uuid",
 			store: &fakeLibrary{},
 			want:  connect.CodeInvalidArgument,
 		},
 		{
-			name:  "unknown artist",
+			name:  "unknownArtist",
 			id:    uuid.Must(uuid.NewV7()).String(),
 			store: &fakeLibrary{err: library.ErrNotFound},
 			want:  connect.CodeNotFound,
 		},
 		{
-			name:  "store failure",
+			name:  "storeFailure",
 			id:    uuid.Must(uuid.NewV7()).String(),
 			store: &fakeLibrary{err: errors.New("disk on fire")},
 			want:  connect.CodeInternal,
@@ -158,7 +158,7 @@ func TestLibraryServer_ListArtists_PassesPage(t *testing.T) {
 		t.Errorf("ListArtists(ctx, %v) next page token = %q, want %q", req, got.GetNextPageToken(), "next-token")
 	}
 	if store.gotToken != "page-token" || store.gotLimit != 7 {
-		t.Errorf("Artists(ctx, token, limit) called with (%q, %d), want (%q, %d)",
+		t.Errorf("Artists(%q, %d), want Artists(%q, %d)",
 			store.gotToken, store.gotLimit, "page-token", 7)
 	}
 }
@@ -182,7 +182,7 @@ func TestLibraryServer_ListAlbums_PassesArtistFilter(t *testing.T) {
 		t.Fatalf("ListAlbums(ctx, %v) failed: %v", req, err)
 	}
 	if store.gotArtistID != artistID {
-		t.Errorf("Albums(ctx, artistID, ...) called with %v, want %v", store.gotArtistID, artistID)
+		t.Errorf("Albums() artist filter = %v, want %v", store.gotArtistID, artistID)
 	}
 
 	want := &libraryv1.ListAlbumsResponse{
@@ -209,7 +209,7 @@ func TestLibraryServer_ListAlbums_OmittedArtistFilter(t *testing.T) {
 		t.Fatalf("ListAlbums(ctx, %v) failed: %v", req, err)
 	}
 	if store.gotArtistID != uuid.Nil {
-		t.Errorf("Albums(ctx, artistID, ...) called with %v, want uuid.Nil", store.gotArtistID)
+		t.Errorf("Albums() artist filter = %v, want uuid.Nil", store.gotArtistID)
 	}
 }
 
@@ -239,7 +239,7 @@ func TestLibraryServer_ListTracks(t *testing.T) {
 		t.Fatalf("ListTracks(ctx, %v) failed: %v", req, err)
 	}
 	if store.gotAlbumID != albumID {
-		t.Errorf("Tracks(ctx, albumID, ...) called with %v, want %v", store.gotAlbumID, albumID)
+		t.Errorf("Tracks() album filter = %v, want %v", store.gotAlbumID, albumID)
 	}
 
 	want := &libraryv1.ListTracksResponse{

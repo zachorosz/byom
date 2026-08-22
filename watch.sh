@@ -16,7 +16,7 @@ while true; do
            (SELECT COUNT(*) FROM artists),
            (SELECT COUNT(*) FROM images),
            (SELECT COALESCE(state,'?') FROM scans ORDER BY start_time DESC LIMIT 1),
-           (SELECT COALESCE(strftime('%s','now')-start_time,0) FROM scans ORDER BY start_time DESC LIMIT 1);" 2>/dev/null)
+           (SELECT COALESCE(strftime('%s','now')-start_time/1000000000,0) FROM scans ORDER BY start_time DESC LIMIT 1);" 2>/dev/null)
   [[ -z "$line" ]] && { sleep "$INT"; continue; }
   f=(${(s: :)line})
   dirs=$f[1] clean=$f[2] dirty=$f[3] locked=$f[4]
