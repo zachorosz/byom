@@ -6,13 +6,16 @@ import (
 	"errors"
 	"flag"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/zachorosz/byom/images"
 	"github.com/zachorosz/byom/metadata"
+	"github.com/zachorosz/byom/rpc"
 	"github.com/zachorosz/byom/scan"
 	"github.com/zachorosz/byom/sqlite"
 	"github.com/zachorosz/byom/storage"
@@ -20,6 +23,7 @@ import (
 
 var (
 	debug = flag.Bool("debug", false, "Enable debug logging")
+	addr  = flag.String("addr", "localhost:8080", "RPC server listen address")
 )
 
 func main() {
@@ -57,7 +61,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	importer := &metadata.Importer{Library: sqlite.NewLibraryStore(db)}
+	libraryStore := sqlite.NewLibraryStore(db)
+	importer := &metadata.Importer{Library: libraryStore}
 
 	pipeline := &metadata.Pipeline{
 		Store:     parseQueueStore,
@@ -69,6 +74,16 @@ func main() {
 
 	pipelineErr := make(chan error, 1)
 	go func() { pipelineErr <- pipeline.Run(ctx) }()
+
+	srv := &http.Server{
+		Addr:    *addr,
+		Handler: rpc.NewHandler(logger, rpc.NewLibraryServer(libraryStore)),
+	}
+	serveErr := make(chan error, 1)
+	go func() {
+		logger.Info("rpc server listening", slog.String("addr", *addr))
+		serveErr <- srv.ListenAndServe()
+	}()
 
 	root, err := loc.Root()
 	if err != nil {
@@ -87,7 +102,18 @@ func main() {
 		pipeline.Wake()
 	}
 
-	<-ctx.Done()
+	select {
+	case <-ctx.Done():
+	case err := <-serveErr:
+		logger.Error("rpc server failed", slog.Any("error", err))
+		stop()
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Warn("rpc server shutdown failed", slog.Any("error", err))
+	}
 
 	if err := <-pipelineErr; err != nil && !errors.Is(err, context.Canceled) {
 		logger.Warn("parse pipeline failed", slog.Any("error", err))
