@@ -10,6 +10,9 @@ interface Entry<T> {
   pageToken: string;
   done: boolean;
   scrollY: number;
+  // In-flight lives per key, not in a shared signal: otherwise a key change
+  // during a fetch makes the new key's loadMore early-return and never retry.
+  inflight: boolean;
 }
 
 // Accumulated pages, keyed by filter set. Module-level so returning to a list —
@@ -24,7 +27,7 @@ export function clearListCache(): void {
 function entryFor<T>(key: string): Entry<T> {
   let entry = cache.get(key) as Entry<T> | undefined;
   if (!entry) {
-    entry = { items: [], pageToken: '', done: false, scrollY: 0 };
+    entry = { items: [], pageToken: '', done: false, scrollY: 0, inflight: false };
     cache.set(key, entry as Entry<unknown>);
   }
   return entry;
@@ -53,10 +56,13 @@ export function createInfiniteList<T>(
   async function loadMore() {
     const k = untrack(key);
     const entry = entryFor<T>(k);
-    if (untrack(loading) || entry.done) return;
+    if (entry.inflight || entry.done) return;
+    entry.inflight = true;
     setLoading(true);
     try {
       const page = await fetchPage(entry.pageToken);
+      // The entry belongs to k, so these mutations are always correct even if
+      // the key has since changed; only the signals are guarded below.
       entry.items = entry.items.concat(page.items);
       entry.pageToken = page.nextPageToken;
       entry.done = !page.nextPageToken;
@@ -65,9 +71,11 @@ export function createInfiniteList<T>(
       setDone(entry.done);
       setError(undefined);
     } catch (e) {
-      setError(e);
+      if (untrack(key) === k) setError(e);
     } finally {
-      setLoading(false);
+      entry.inflight = false;
+      // Leave loading set if a newer key started its own fetch in the meantime.
+      if (untrack(key) === k) setLoading(false);
     }
   }
 

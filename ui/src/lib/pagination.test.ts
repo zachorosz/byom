@@ -116,6 +116,36 @@ describe('createInfiniteList', () => {
     });
   });
 
+  // Regression: in-flight state must be per key. With a single shared `loading`
+  // signal, the new key's loadMore early-returns while the old fetch is still
+  // running and the new list is left permanently empty.
+  test('a key change during an in-flight fetch still loads the new list', async () => {
+    let resolveFirst: ((p: { items: Row[]; nextPageToken: string }) => void) | undefined;
+    await createRoot(async (dispose) => {
+      const [key, setKey] = createSignal('albums:all');
+      const list = createInfiniteList(key, () => {
+        if (key() === 'albums:all') {
+          return new Promise<{ items: Row[]; nextPageToken: string }>((resolve) => {
+            resolveFirst = resolve;
+          });
+        }
+        return Promise.resolve({ items: [{ id: 'x' }], nextPageToken: '' });
+      });
+      await flushAsync();
+      expect(list.items.length).toBe(0);
+
+      setKey('albums:ep');
+      await flushAsync();
+      expect(list.items.map((r) => r.id)).toEqual(['x']);
+
+      // The superseded fetch must not leak into the list now showing.
+      resolveFirst!({ items: [{ id: 'a' }], nextPageToken: '' });
+      await flushAsync();
+      expect(list.items.map((r) => r.id)).toEqual(['x']);
+      dispose();
+    });
+  });
+
   test('a fetch failure keeps the items already accumulated', async () => {
     let first = true;
     await createRoot(async (dispose) => {
