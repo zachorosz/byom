@@ -42,7 +42,7 @@ export default function TrackList(props: TrackListProps) {
           <ul>
             <For each={disc.tracks}>
               {(track) => (
-                <li class="hover:bg-panel flex items-baseline gap-3 rounded-[3px] border-b border-b-[#1a1815] px-2 py-1.5">
+                <li class="hover:bg-panel border-b-line flex items-baseline gap-3 rounded-[3px] border-b px-2 py-1.5">
                   <span class="text-faint w-5 flex-none text-right font-mono text-[10px]">
                     {track.trackNumber}
                   </span>

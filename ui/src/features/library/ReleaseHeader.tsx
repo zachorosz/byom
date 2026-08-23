@@ -1,15 +1,14 @@
 import { For, Show } from 'solid-js';
 import type { Album } from '@proto/library/v1/album_pb';
-import type { Duration } from '@bufbuild/protobuf/wkt';
 
 import Chip from '../../components/Chip';
 import Cover from '../../components/Cover';
-import { albumFlags, albumTypeLabel, formatDuration } from '../../lib/format';
+import { albumFlags, albumTypeLabel } from '../../lib/format';
 
+// Deliberately album-only: track count and total duration depend on ListTracks,
+// and reading them here would suspend the header behind the slower fetch.
 interface ReleaseHeaderProps {
   album: Album;
-  trackCount: number;
-  totalDuration: Duration;
 }
 
 /** ReleaseHeader renders an album's identity: artwork, credits, and release facts. */
@@ -48,9 +47,6 @@ export default function ReleaseHeader(props: ReleaseHeaderProps) {
             <Chip>PRIMARY VERSION</Chip>
           </Show>
         </div>
-        <p class="text-faint mt-3 font-mono text-[10px] tracking-[0.05em]">
-          {props.trackCount} TRACKS · {formatDuration(props.totalDuration)}
-        </p>
       </div>
     </header>
   );

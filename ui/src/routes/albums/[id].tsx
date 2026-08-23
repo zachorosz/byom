@@ -1,10 +1,10 @@
 import { Title } from '@solidjs/meta';
 import type { RouteDefinition, RouteProps } from '@solidjs/router';
-import { createMemo, Show } from 'solid-js';
+import { createMemo, Loading, Show } from 'solid-js';
 
 import ReleaseHeader from '../../features/library/ReleaseHeader';
 import TrackList from '../../features/library/TrackList';
-import { sumDurations } from '../../lib/format';
+import { formatDuration, sumDurations } from '../../lib/format';
 import { getAlbum, listTracks } from '../../lib/rpc/library';
 
 // Starts both fetches as soon as navigation begins, before the page renders.
@@ -27,12 +27,18 @@ export default function AlbumDetail(props: RouteProps<'/albums/:id'>) {
         {(a) => (
           <>
             <Title>{`${a().title} - byom`}</Title>
-            <ReleaseHeader
-              album={a()}
-              trackCount={tracks().length}
-              totalDuration={sumDurations(tracks().map((t) => t.duration))}
-            />
-            <TrackList tracks={tracks()} />
+            <ReleaseHeader album={a()} />
+            {/* Its own boundary: the header depends only on GetAlbum, so a slow
+                ListTracks must not hold the whole page on the shell fallback. */}
+            <Loading
+              fallback={<p class="text-muted py-4 font-mono text-xs">Loading tracks…</p>}
+            >
+              <p class="text-faint mb-3 font-mono text-[10px] tracking-[0.05em]">
+                {tracks().length} TRACKS ·{' '}
+                {formatDuration(sumDurations(tracks().map((t) => t.duration)))}
+              </p>
+              <TrackList tracks={tracks()} />
+            </Loading>
           </>
         )}
       </Show>
