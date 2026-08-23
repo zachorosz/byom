@@ -21,11 +21,13 @@ export default function Cover(props: CoverProps) {
       data-testid="cover"
       role="img"
       aria-label={`${props.title} — no cover art`}
-      class={{
-        'flex aspect-square w-full items-center justify-center rounded-[2px] font-serif text-white/70 shadow-lg shadow-black/50': true,
-        'text-2xl': props.size !== 'hero',
-        'text-5xl': props.size === 'hero',
-      }}
+      class={[
+        'flex aspect-square w-full items-center justify-center rounded-[2px] font-serif text-white/70 shadow-lg shadow-black/50',
+        {
+          'text-2xl': props.size !== 'hero',
+          'text-5xl': props.size === 'hero',
+        },
+      ]}
       style={{
         'background-image': `linear-gradient(155deg, ${gradient().from}, ${gradient().to})`,
       }}
