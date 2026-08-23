@@ -1,27 +1,21 @@
 import { Title } from '@solidjs/meta';
-import { query, type RouteDefinition } from '@solidjs/router';
-import { For, createMemo } from 'solid-js';
+import { For } from 'solid-js';
 
+import InfiniteScrollSentinel from '../components/InfiniteScrollSentinel';
 import { libraryClient } from '../lib/rpc/client';
-
-const getAlbums = query(async () => {
-  const res = await libraryClient.listAlbums({});
-  return res.items;
-}, 'albums');
-
-export const route = {
-  preload: () => void getAlbums(),
-} satisfies RouteDefinition;
+import { createInfiniteList } from '../lib/pagination';
 
 export default function Albums() {
-  const albums = createMemo(() => getAlbums());
+  const { items, loading, done, loadMore } = createInfiniteList((pageToken) =>
+    libraryClient.listAlbums({ pageToken }),
+  );
 
   return (
     <main class="px-4 py-12">
       <Title>Albums - Solid App</Title>
       <h1 class="my-4 text-4xl font-bold">Albums</h1>
       <ul class="my-4">
-        <For each={albums()}>
+        <For each={items}>
           {(album) => (
             <li class="py-1">
               {album.title}
@@ -35,6 +29,8 @@ export default function Albums() {
           )}
         </For>
       </ul>
+      <InfiniteScrollSentinel onIntersect={loadMore} disabled={loading() || done()} />
+      {loading() && <p class="py-4 text-slate-500">Loading…</p>}
     </main>
   );
 }
