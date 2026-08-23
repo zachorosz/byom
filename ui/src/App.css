@@ -1,1 +1,28 @@
 @import 'tailwindcss';
+
+/* The whole palette. Components reference these tokens and never a hex value,
+   so retheming — including a light mode later — is editing this block. */
+@theme {
+  --color-ground: #0a0b0d;
+  --color-panel: #111316;
+  --color-line: #22262c;
+  --color-sel: #1a1e24;
+  --color-ink: #e6e9ee;
+  --color-muted: #8b929c;
+  --color-faint: #5a616b;
+  --color-accent: #5a8dee;
+  --color-accent-dim: #2a3f6b;
+  --color-accent-tint: #0e1420;
+
+  --font-serif: 'Spectral', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+}
