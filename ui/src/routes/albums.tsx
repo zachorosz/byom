@@ -2,12 +2,12 @@ import { Title } from '@solidjs/meta';
 import { For } from 'solid-js';
 
 import InfiniteScrollSentinel from '../components/InfiniteScrollSentinel';
-import { libraryClient } from '../lib/rpc/client';
+import { rpc } from '../lib/rpc/client';
 import { createInfiniteList } from '../lib/pagination';
 
 export default function Albums() {
   const { items, loading, done, loadMore } = createInfiniteList((pageToken) =>
-    libraryClient.listAlbums({ pageToken }),
+    rpc.library.listAlbums({ pageToken }),
   );
 
   return (
