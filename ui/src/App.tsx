@@ -15,7 +15,7 @@ function Failed(props: { error: () => unknown; reset: () => void }) {
       <p class="text-muted mt-2 font-mono text-xs">{String(props.error())}</p>
       <button
         type="button"
-        onClick={props.reset}
+        onClick={() => props.reset()}
         class="border-accent-dim bg-accent-tint text-accent mt-4 rounded border px-3 py-1 text-xs"
       >
         Retry
