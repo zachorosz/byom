@@ -1,37 +1,52 @@
 import { Title } from '@solidjs/meta';
-import { For } from 'solid-js';
+import { useSearchParams } from '@solidjs/router';
+import { Show } from 'solid-js';
 
 import InfiniteScrollSentinel from '../components/InfiniteScrollSentinel';
+import AlbumGrid from '../features/library/AlbumGrid';
+import { createInfiniteList, createScrollRestoration } from '../lib/pagination';
 import { rpc } from '../lib/rpc/client';
-import { createInfiniteList } from '../lib/pagination';
 
 export default function Albums() {
-  const { items, loading, done, loadMore } = createInfiniteList(
-    () => 'albums:',
-    (pageToken) => rpc.library.listAlbums({ pageToken }),
+  const [params] = useSearchParams();
+
+  // The key is the filter set. Nothing filters yet — ListAlbums takes no sort
+  // or filter params — but the plumbing is here so adding one is a one-liner.
+  const key = () => `albums:${JSON.stringify(params)}`;
+
+  const list = createInfiniteList(key, (pageToken) =>
+    rpc.library.listAlbums({ pageToken }),
   );
+  const { items, loading, done, error, loadMore } = list;
+  createScrollRestoration(list);
 
   return (
-    <main class="px-4 py-12">
-      <Title>Albums - Solid App</Title>
-      <h1 class="my-4 text-4xl font-bold">Albums</h1>
-      <ul class="my-4">
-        <For each={items}>
-          {(album) => (
-            <li class="py-1">
-              {album.title}
-              {album.artists.length > 0 && (
-                <span class="text-slate-500">
-                  {' — '}
-                  {album.artists.map((a) => a.creditedName).join(', ')}
-                </span>
-              )}
-            </li>
-          )}
-        </For>
-      </ul>
+    <main class="px-6 py-8">
+      <Title>Albums - byom</Title>
+      <h1 class="mb-6 font-serif text-3xl">Albums</h1>
+      <AlbumGrid albums={items} />
+      <Show when={items.length === 0 && done()}>
+        <p class="text-muted text-sm">
+          No albums yet.{' '}
+          <a href="/settings" class="text-accent underline underline-offset-4">
+            Add a library source
+          </a>{' '}
+          and run a scan.
+        </p>
+      </Show>
       <InfiniteScrollSentinel onIntersect={loadMore} disabled={loading() || done()} />
-      {loading() && <p class="py-4 text-slate-500">Loading…</p>}
+      <Show when={loading()}>
+        <p class="text-muted py-4 font-mono text-xs">Loading…</p>
+      </Show>
+      <Show when={error()}>
+        <button
+          type="button"
+          onClick={loadMore}
+          class="border-line text-muted mt-4 rounded border px-3 py-1 text-xs"
+        >
+          Failed to load more — retry
+        </button>
+      </Show>
     </main>
   );
 }
