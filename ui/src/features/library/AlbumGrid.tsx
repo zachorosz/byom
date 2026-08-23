@@ -4,7 +4,8 @@ import type { Album } from '@proto/library/v1/album_pb';
 import Cover from '../../components/Cover';
 
 interface AlbumGridProps {
-  albums: Album[];
+  // readonly: createInfiniteList's items come from a store, which is readonly.
+  albums: readonly Album[];
 }
 
 function credits(album: Album): string {
