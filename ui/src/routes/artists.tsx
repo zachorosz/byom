@@ -6,8 +6,9 @@ import { rpc } from '../lib/rpc/client';
 import { createInfiniteList } from '../lib/pagination';
 
 export default function Artists() {
-  const { items, loading, done, loadMore } = createInfiniteList((pageToken) =>
-    rpc.library.listArtists({ pageToken }),
+  const { items, loading, done, loadMore } = createInfiniteList(
+    () => 'artists:',
+    (pageToken) => rpc.library.listArtists({ pageToken }),
   );
 
   return (
