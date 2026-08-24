@@ -39,18 +39,6 @@ declare module "virtual:file-routes" {
       $$route: FileRouteEagerRef<typeof import("./src/routes/[...404]")>;
     },
     {
-      path: "/albums";
-      page: true;
-      $component: FileRouteLazyRef<typeof import("./src/routes/albums")>;
-      $$route?: undefined;
-    },
-    {
-      path: "/artists";
-      page: true;
-      $component: FileRouteLazyRef<typeof import("./src/routes/artists")>;
-      $$route?: undefined;
-    },
-    {
       path: "/";
       page: true;
       $component: FileRouteLazyRef<typeof import("./src/routes/index")>;
@@ -63,10 +51,22 @@ declare module "virtual:file-routes" {
       $$route: FileRouteEagerRef<typeof import("./src/routes/albums/[id]")>;
     },
     {
+      path: "/albums/";
+      page: true;
+      $component: FileRouteLazyRef<typeof import("./src/routes/albums/index")>;
+      $$route?: undefined;
+    },
+    {
       path: "/artists/:id";
       page: true;
       $component: FileRouteLazyRef<typeof import("./src/routes/artists/[id]")>;
       $$route: FileRouteEagerRef<typeof import("./src/routes/artists/[id]")>;
+    },
+    {
+      path: "/artists/";
+      page: true;
+      $component: FileRouteLazyRef<typeof import("./src/routes/artists/index")>;
+      $$route?: undefined;
     }
   ];
   export default routes;
@@ -90,38 +90,36 @@ declare module "virtual:file-routes" {
       children?: undefined;
     },
     {
-      path: "/albums";
-      id: "/albums";
+      path: "/albums/";
+      id: "/albums/";
       page: true;
-      $component: FileRouteLazyRef<typeof import("./src/routes/albums")>;
+      $component: FileRouteLazyRef<typeof import("./src/routes/albums/index")>;
       $$route?: undefined;
-      children: readonly [
-        {
-          path: "/:id";
-          id: "/:id";
-          page: true;
-          $component: FileRouteLazyRef<typeof import("./src/routes/albums/[id]")>;
-          $$route: FileRouteEagerRef<typeof import("./src/routes/albums/[id]")>;
-          children?: undefined;
-        }
-      ];
+      children?: undefined;
     },
     {
-      path: "/artists";
-      id: "/artists";
+      path: "/artists/";
+      id: "/artists/";
       page: true;
-      $component: FileRouteLazyRef<typeof import("./src/routes/artists")>;
+      $component: FileRouteLazyRef<typeof import("./src/routes/artists/index")>;
       $$route?: undefined;
-      children: readonly [
-        {
-          path: "/:id";
-          id: "/:id";
-          page: true;
-          $component: FileRouteLazyRef<typeof import("./src/routes/artists/[id]")>;
-          $$route: FileRouteEagerRef<typeof import("./src/routes/artists/[id]")>;
-          children?: undefined;
-        }
-      ];
+      children?: undefined;
+    },
+    {
+      path: "/albums/:id";
+      id: "/albums/:id";
+      page: true;
+      $component: FileRouteLazyRef<typeof import("./src/routes/albums/[id]")>;
+      $$route: FileRouteEagerRef<typeof import("./src/routes/albums/[id]")>;
+      children?: undefined;
+    },
+    {
+      path: "/artists/:id";
+      id: "/artists/:id";
+      page: true;
+      $component: FileRouteLazyRef<typeof import("./src/routes/artists/[id]")>;
+      $$route: FileRouteEagerRef<typeof import("./src/routes/artists/[id]")>;
+      children?: undefined;
     }
   ];
 }

@@ -2,29 +2,32 @@ import { Title } from '@solidjs/meta';
 import { useSearchParams } from '@solidjs/router';
 import { Show } from 'solid-js';
 
-import InfiniteScrollSentinel from '../components/InfiniteScrollSentinel';
-import ArtistList from '../features/library/ArtistList';
-import { createInfiniteList, createScrollRestoration } from '../lib/pagination';
-import { rpc } from '../lib/rpc/client';
+import InfiniteScrollSentinel from '../../components/InfiniteScrollSentinel';
+import AlbumGrid from '../../features/library/AlbumGrid';
+import { createInfiniteList, createScrollRestoration } from '../../lib/pagination';
+import { rpc } from '../../lib/rpc/client';
 
-export default function Artists() {
+export default function Albums() {
   const [params] = useSearchParams();
-  const key = () => `artists:${JSON.stringify(params)}`;
+
+  // The key is the filter set. Nothing filters yet — ListAlbums takes no sort
+  // or filter params — but the plumbing is here so adding one is a one-liner.
+  const key = () => `albums:${JSON.stringify(params)}`;
 
   const list = createInfiniteList(key, (pageToken) =>
-    rpc.library.listArtists({ pageToken }),
+    rpc.library.listAlbums({ pageToken }),
   );
   const { items, loading, done, error, loadMore } = list;
   createScrollRestoration(list);
 
   return (
     <main class="px-6 py-8">
-      <Title>Artists - byom</Title>
-      <h1 class="mb-6 font-serif text-3xl">Artists</h1>
-      <ArtistList artists={items} />
+      <Title>Albums - byom</Title>
+      <h1 class="mb-6 font-serif text-3xl">Albums</h1>
+      <AlbumGrid albums={items} />
       <Show when={items.length === 0 && done()}>
         <p class="text-muted text-sm">
-          No artists yet.{' '}
+          No albums yet.{' '}
           <a href="/settings" class="text-accent underline underline-offset-4">
             Add a library source
           </a>{' '}
