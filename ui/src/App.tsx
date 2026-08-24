@@ -1,5 +1,7 @@
 import { Title } from '@solidjs/meta';
-import { Errored, Loading, type ParentProps } from 'solid-js';
+import { Errored, Loading, onSettled, type ParentProps } from 'solid-js';
+import ScanIndicator from './features/management/ScanIndicator';
+import { startScanMonitor } from './lib/rpc/scan-monitor';
 import { paths, Router } from './router';
 import './App.css';
 
@@ -25,6 +27,8 @@ function Failed(props: { error: () => unknown; reset: () => void }) {
 }
 
 function Shell(props: ParentProps) {
+  onSettled(() => startScanMonitor());
+
   return (
     <div class="flex min-h-screen">
       <nav class="bg-panel border-line flex w-44 flex-none flex-col border-r p-3">
@@ -41,7 +45,7 @@ function Shell(props: ParentProps) {
           Albums
         </a>
         <div class="border-line mt-auto border-t pt-2">
-          {/* Task 11 mounts <ScanIndicator /> here. */}
+          <ScanIndicator />
           <a class={NAV_LINK} href="/settings">
             Settings
           </a>
