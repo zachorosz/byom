@@ -31,7 +31,9 @@ function Shell(props: ParentProps) {
 
   return (
     <div class="flex min-h-screen">
-      <nav class="bg-panel border-line flex w-44 flex-none flex-col border-r p-3">
+      {/* sticky + self-start keeps the sidebar in view while the window scrolls.
+          Scrolling stays on the window because pagination restores window.scrollY. */}
+      <nav class="bg-panel border-line sticky top-0 flex h-screen w-44 flex-none flex-col self-start border-r p-3">
         <a href={paths()} class="mb-5 px-2 font-serif text-xl italic no-underline">
           byom
         </a>
