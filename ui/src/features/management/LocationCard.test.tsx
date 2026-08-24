@@ -1,4 +1,5 @@
-import { render } from '@solidjs/testing-library';
+import { fireEvent, render } from '@solidjs/testing-library';
+import { Code, ConnectError } from '@connectrpc/connect';
 import type { Location } from '@proto/management/v1/location_pb';
 import { ScanState, type Scan } from '@proto/management/v1/scan_pb';
 import { Loading } from 'solid-js';
@@ -88,5 +89,29 @@ describe('<LocationCard />', () => {
     const { findByRole, queryByRole } = card(scan({ state: ScanState.RUNNING }));
     expect(await findByRole('progressbar')).toBeInTheDocument();
     expect(queryByRole('button', { name: 'Scan' })).toBeNull();
+  });
+
+  test('a failing scan start surfaces the error on the row', async () => {
+    fakeManagement({
+      listScans: () => ({ items: [], nextPageToken: '' }),
+      scanLocation: () => {
+        throw new ConnectError('permission denied', Code.PermissionDenied);
+      },
+    });
+    const { findByRole, findByText } = card(undefined);
+    fireEvent.click(await findByRole('button', { name: 'Scan' }));
+    expect(await findByText(/permission denied/)).toBeInTheDocument();
+  });
+
+  test('a failing cancel surfaces the error on the row', async () => {
+    fakeManagement({
+      listScans: () => ({ items: [], nextPageToken: '' }),
+      cancelScan: () => {
+        throw new ConnectError('already finished', Code.FailedPrecondition);
+      },
+    });
+    const { findByRole, findByText } = card(scan({ state: ScanState.RUNNING }));
+    fireEvent.click(await findByRole('button', { name: 'Cancel' }));
+    expect(await findByText(/already finished/)).toBeInTheDocument();
   });
 });

@@ -16,15 +16,27 @@ interface LocationCardProps {
 /** LocationCard renders one library source: its path, scan action, and history. */
 export default function LocationCard(props: LocationCardProps) {
   const [showHistory, setShowHistory] = createSignal(false);
+  const [error, setError] = createSignal('');
 
   async function start() {
-    await scanLocation(props.location.id);
-    pokeScanMonitor();
+    setError('');
+    try {
+      await scanLocation(props.location.id);
+      pokeScanMonitor();
+    } catch (e) {
+      setError(String(e));
+    }
   }
 
   async function stop() {
-    if (props.running) await cancelScan(props.running.id);
-    pokeScanMonitor();
+    if (!props.running) return;
+    setError('');
+    try {
+      await cancelScan(props.running.id);
+      pokeScanMonitor();
+    } catch (e) {
+      setError(String(e));
+    }
   }
 
   return (
@@ -44,6 +56,9 @@ export default function LocationCard(props: LocationCardProps) {
           history
         </button>
       </div>
+      <Show when={error()}>
+        <p class="text-danger px-3 pb-2.5 font-mono text-[10px]">{error()}</p>
+      </Show>
       <Show
         when={props.running}
         fallback={
