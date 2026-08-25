@@ -40,7 +40,7 @@ export default function ScanPanel(props: ScanPanelProps) {
         aria-valuetext="Scanning"
         class="bg-line mt-2 h-0.5 overflow-hidden rounded"
       >
-        <div class="bg-accent h-full w-1/3 animate-pulse" />
+        <div class="bg-accent animate-shuttle h-full w-1/3" />
       </div>
       <div class="text-muted mt-2 font-mono text-[10px]">
         dirs seen <b class="text-ink font-medium">{count(props.scan.progress?.dirsSeen)}</b>

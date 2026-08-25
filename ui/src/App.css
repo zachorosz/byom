@@ -18,6 +18,24 @@
   --font-serif: 'Spectral', Georgia, 'Times New Roman', serif;
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  /* Indeterminate scan progress: travels and breathes at once. Scan.Progress
+     has counters but no total, so there is no percentage to show. */
+  --animate-shuttle: shuttle 1.8s ease-in-out infinite;
+
+  @keyframes shuttle {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(300%);
+      opacity: 0.5;
+    }
+  }
 }
 
 @layer base {
