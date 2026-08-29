@@ -2,12 +2,12 @@
 // @generated from file library/v1/library.proto (package library.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_buf_validate_validate } from "../../buf/validate/validate_pb";
 import type { Artist } from "./artist_pb";
 import { file_library_v1_artist } from "./artist_pb";
-import type { Album } from "./album_pb";
+import type { Album, AlbumType } from "./album_pb";
 import { file_library_v1_album } from "./album_pb";
 import type { Track } from "./track_pb";
 import { file_library_v1_track } from "./track_pb";
@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file library/v1/library.proto.
  */
 export const file_library_v1_library: GenFile = /*@__PURE__*/
-  fileDesc("ChhsaWJyYXJ5L3YxL2xpYnJhcnkucHJvdG8SCmxpYnJhcnkudjEiOwoSTGlzdEFydGlzdHNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJIlEKE0xpc3RBcnRpc3RzUmVzcG9uc2USIQoFaXRlbXMYASADKAsyEi5saWJyYXJ5LnYxLkFydGlzdBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiJgoQR2V0QXJ0aXN0UmVxdWVzdBISCgJpZBgBIAEoCUIGukgDyAEBIjcKEUdldEFydGlzdFJlc3BvbnNlEiIKBmFydGlzdBgBIAEoCzISLmxpYnJhcnkudjEuQXJ0aXN0Ik0KEUxpc3RBbGJ1bXNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJEhEKCWFydGlzdF9pZBgDIAEoCSJPChJMaXN0QWxidW1zUmVzcG9uc2USIAoFaXRlbXMYASADKAsyES5saWJyYXJ5LnYxLkFsYnVtEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIlCg9HZXRBbGJ1bVJlcXVlc3QSEgoCaWQYASABKAlCBrpIA8gBASI0ChBHZXRBbGJ1bVJlc3BvbnNlEiAKBWFsYnVtGAEgASgLMhEubGlicmFyeS52MS5BbGJ1bSJMChFMaXN0VHJhY2tzUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRIQCghhbGJ1bV9pZBgDIAEoCSJPChJMaXN0VHJhY2tzUmVzcG9uc2USIAoFaXRlbXMYASADKAsyES5saWJyYXJ5LnYxLlRyYWNrEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIlCg9HZXRUcmFja1JlcXVlc3QSEgoCaWQYASABKAlCBrpIA8gBASI0ChBHZXRUcmFja1Jlc3BvbnNlEiAKBXRyYWNrGAEgASgLMhEubGlicmFyeS52MS5UcmFjazLeAwoOTGlicmFyeVNlcnZpY2USUAoLTGlzdEFydGlzdHMSHi5saWJyYXJ5LnYxLkxpc3RBcnRpc3RzUmVxdWVzdBofLmxpYnJhcnkudjEuTGlzdEFydGlzdHNSZXNwb25zZSIAEkoKCUdldEFydGlzdBIcLmxpYnJhcnkudjEuR2V0QXJ0aXN0UmVxdWVzdBodLmxpYnJhcnkudjEuR2V0QXJ0aXN0UmVzcG9uc2UiABJNCgpMaXN0QWxidW1zEh0ubGlicmFyeS52MS5MaXN0QWxidW1zUmVxdWVzdBoeLmxpYnJhcnkudjEuTGlzdEFsYnVtc1Jlc3BvbnNlIgASRwoIR2V0QWxidW0SGy5saWJyYXJ5LnYxLkdldEFsYnVtUmVxdWVzdBocLmxpYnJhcnkudjEuR2V0QWxidW1SZXNwb25zZSIAEk0KCkxpc3RUcmFja3MSHS5saWJyYXJ5LnYxLkxpc3RUcmFja3NSZXF1ZXN0Gh4ubGlicmFyeS52MS5MaXN0VHJhY2tzUmVzcG9uc2UiABJHCghHZXRUcmFjaxIbLmxpYnJhcnkudjEuR2V0VHJhY2tSZXF1ZXN0GhwubGlicmFyeS52MS5HZXRUcmFja1Jlc3BvbnNlIgBCnQEKDmNvbS5saWJyYXJ5LnYxQgxMaWJyYXJ5UHJvdG9QAVo0Z2l0aHViLmNvbS96YWNob3Jvc3ovYnlvbS9wcm90by9saWJyYXJ5L3YxO2xpYnJhcnl2MaICA0xYWKoCCkxpYnJhcnkuVjHKAgpMaWJyYXJ5XFYx4gIWTGlicmFyeVxWMVxHUEJNZXRhZGF0YeoCC0xpYnJhcnk6OlYxYgZwcm90bzM", [file_buf_validate_validate, file_library_v1_artist, file_library_v1_album, file_library_v1_track]);
+  fileDesc("ChhsaWJyYXJ5L3YxL2xpYnJhcnkucHJvdG8SCmxpYnJhcnkudjEiOwoSTGlzdEFydGlzdHNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJIlEKE0xpc3RBcnRpc3RzUmVzcG9uc2USIQoFaXRlbXMYASADKAsyEi5saWJyYXJ5LnYxLkFydGlzdBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiJgoQR2V0QXJ0aXN0UmVxdWVzdBISCgJpZBgBIAEoCUIGukgDyAEBIjcKEUdldEFydGlzdFJlc3BvbnNlEiIKBmFydGlzdBgBIAEoCzISLmxpYnJhcnkudjEuQXJ0aXN0IsQBChFMaXN0QWxidW1zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglhcnRpc3RfaWQYAyABKAkSHAoUaW5jbHVkZV9hbGxfdmVyc2lvbnMYBCABKAgSKgoLYWxidW1fdHlwZXMYBSADKA4yFS5saWJyYXJ5LnYxLkFsYnVtVHlwZRIrCghib290bGVncxgGIAEoDjIZLmxpYnJhcnkudjEuQm9vdGxlZ0ZpbHRlciJPChJMaXN0QWxidW1zUmVzcG9uc2USIAoFaXRlbXMYASADKAsyES5saWJyYXJ5LnYxLkFsYnVtEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSI0ChhMaXN0QWxidW1WZXJzaW9uc1JlcXVlc3QSGAoIYWxidW1faWQYASABKAlCBrpIA8gBASI9ChlMaXN0QWxidW1WZXJzaW9uc1Jlc3BvbnNlEiAKBWl0ZW1zGAEgAygLMhEubGlicmFyeS52MS5BbGJ1bSIlCg9HZXRBbGJ1bVJlcXVlc3QSEgoCaWQYASABKAlCBrpIA8gBASI0ChBHZXRBbGJ1bVJlc3BvbnNlEiAKBWFsYnVtGAEgASgLMhEubGlicmFyeS52MS5BbGJ1bSJMChFMaXN0VHJhY2tzUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRIQCghhbGJ1bV9pZBgDIAEoCSJPChJMaXN0VHJhY2tzUmVzcG9uc2USIAoFaXRlbXMYASADKAsyES5saWJyYXJ5LnYxLlRyYWNrEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIlCg9HZXRUcmFja1JlcXVlc3QSEgoCaWQYASABKAlCBrpIA8gBASI0ChBHZXRUcmFja1Jlc3BvbnNlEiAKBXRyYWNrGAEgASgLMhEubGlicmFyeS52MS5UcmFjaypkCg1Cb290bGVnRmlsdGVyEh4KGkJPT1RMRUdfRklMVEVSX1VOU1BFQ0lGSUVEEAASGgoWQk9PVExFR19GSUxURVJfRVhDTFVERRABEhcKE0JPT1RMRUdfRklMVEVSX09OTFkQAjLCBAoOTGlicmFyeVNlcnZpY2USUAoLTGlzdEFydGlzdHMSHi5saWJyYXJ5LnYxLkxpc3RBcnRpc3RzUmVxdWVzdBofLmxpYnJhcnkudjEuTGlzdEFydGlzdHNSZXNwb25zZSIAEkoKCUdldEFydGlzdBIcLmxpYnJhcnkudjEuR2V0QXJ0aXN0UmVxdWVzdBodLmxpYnJhcnkudjEuR2V0QXJ0aXN0UmVzcG9uc2UiABJNCgpMaXN0QWxidW1zEh0ubGlicmFyeS52MS5MaXN0QWxidW1zUmVxdWVzdBoeLmxpYnJhcnkudjEuTGlzdEFsYnVtc1Jlc3BvbnNlIgASRwoIR2V0QWxidW0SGy5saWJyYXJ5LnYxLkdldEFsYnVtUmVxdWVzdBocLmxpYnJhcnkudjEuR2V0QWxidW1SZXNwb25zZSIAEmIKEUxpc3RBbGJ1bVZlcnNpb25zEiQubGlicmFyeS52MS5MaXN0QWxidW1WZXJzaW9uc1JlcXVlc3QaJS5saWJyYXJ5LnYxLkxpc3RBbGJ1bVZlcnNpb25zUmVzcG9uc2UiABJNCgpMaXN0VHJhY2tzEh0ubGlicmFyeS52MS5MaXN0VHJhY2tzUmVxdWVzdBoeLmxpYnJhcnkudjEuTGlzdFRyYWNrc1Jlc3BvbnNlIgASRwoIR2V0VHJhY2sSGy5saWJyYXJ5LnYxLkdldFRyYWNrUmVxdWVzdBocLmxpYnJhcnkudjEuR2V0VHJhY2tSZXNwb25zZSIAQp0BCg5jb20ubGlicmFyeS52MUIMTGlicmFyeVByb3RvUAFaNGdpdGh1Yi5jb20vemFjaG9yb3N6L2J5b20vcHJvdG8vbGlicmFyeS92MTtsaWJyYXJ5djGiAgNMWFiqAgpMaWJyYXJ5LlYxygIKTGlicmFyeVxWMeICFkxpYnJhcnlcVjFcR1BCTWV0YWRhdGHqAgtMaWJyYXJ5OjpWMWIGcHJvdG8z", [file_buf_validate_validate, file_library_v1_artist, file_library_v1_album, file_library_v1_track]);
 
 /**
  * @generated from message library.v1.ListArtistsRequest
@@ -115,6 +115,27 @@ export type ListAlbumsRequest = Message<"library.v1.ListAlbumsRequest"> & {
    * @generated from field: string artist_id = 3;
    */
   artistId: string;
+
+  /**
+   * include_all_versions lists a release's alternate versions
+   * alongside its primary rather than the primary alone.
+   *
+   * @generated from field: bool include_all_versions = 4;
+   */
+  includeAllVersions: boolean;
+
+  /**
+   * album_types restricts the listing to the given release types. An
+   * empty list matches every type.
+   *
+   * @generated from field: repeated library.v1.AlbumType album_types = 5;
+   */
+  albumTypes: AlbumType[];
+
+  /**
+   * @generated from field: library.v1.BootlegFilter bootlegs = 6;
+   */
+  bootlegs: BootlegFilter;
 };
 
 /**
@@ -147,6 +168,44 @@ export const ListAlbumsResponseSchema: GenMessage<ListAlbumsResponse> = /*@__PUR
   messageDesc(file_library_v1_library, 5);
 
 /**
+ * @generated from message library.v1.ListAlbumVersionsRequest
+ */
+export type ListAlbumVersionsRequest = Message<"library.v1.ListAlbumVersionsRequest"> & {
+  /**
+   * @generated from field: string album_id = 1;
+   */
+  albumId: string;
+};
+
+/**
+ * Describes the message library.v1.ListAlbumVersionsRequest.
+ * Use `create(ListAlbumVersionsRequestSchema)` to create a new message.
+ */
+export const ListAlbumVersionsRequestSchema: GenMessage<ListAlbumVersionsRequest> = /*@__PURE__*/
+  messageDesc(file_library_v1_library, 6);
+
+/**
+ * ListAlbumVersionsResponse holds every version of one release,
+ * including the album that was asked for. Version groups are small, so
+ * the whole group is returned unpaginated.
+ *
+ * @generated from message library.v1.ListAlbumVersionsResponse
+ */
+export type ListAlbumVersionsResponse = Message<"library.v1.ListAlbumVersionsResponse"> & {
+  /**
+   * @generated from field: repeated library.v1.Album items = 1;
+   */
+  items: Album[];
+};
+
+/**
+ * Describes the message library.v1.ListAlbumVersionsResponse.
+ * Use `create(ListAlbumVersionsResponseSchema)` to create a new message.
+ */
+export const ListAlbumVersionsResponseSchema: GenMessage<ListAlbumVersionsResponse> = /*@__PURE__*/
+  messageDesc(file_library_v1_library, 7);
+
+/**
  * @generated from message library.v1.GetAlbumRequest
  */
 export type GetAlbumRequest = Message<"library.v1.GetAlbumRequest"> & {
@@ -161,7 +220,7 @@ export type GetAlbumRequest = Message<"library.v1.GetAlbumRequest"> & {
  * Use `create(GetAlbumRequestSchema)` to create a new message.
  */
 export const GetAlbumRequestSchema: GenMessage<GetAlbumRequest> = /*@__PURE__*/
-  messageDesc(file_library_v1_library, 6);
+  messageDesc(file_library_v1_library, 8);
 
 /**
  * @generated from message library.v1.GetAlbumResponse
@@ -178,7 +237,7 @@ export type GetAlbumResponse = Message<"library.v1.GetAlbumResponse"> & {
  * Use `create(GetAlbumResponseSchema)` to create a new message.
  */
 export const GetAlbumResponseSchema: GenMessage<GetAlbumResponse> = /*@__PURE__*/
-  messageDesc(file_library_v1_library, 7);
+  messageDesc(file_library_v1_library, 9);
 
 /**
  * @generated from message library.v1.ListTracksRequest
@@ -205,7 +264,7 @@ export type ListTracksRequest = Message<"library.v1.ListTracksRequest"> & {
  * Use `create(ListTracksRequestSchema)` to create a new message.
  */
 export const ListTracksRequestSchema: GenMessage<ListTracksRequest> = /*@__PURE__*/
-  messageDesc(file_library_v1_library, 8);
+  messageDesc(file_library_v1_library, 10);
 
 /**
  * @generated from message library.v1.ListTracksResponse
@@ -227,7 +286,7 @@ export type ListTracksResponse = Message<"library.v1.ListTracksResponse"> & {
  * Use `create(ListTracksResponseSchema)` to create a new message.
  */
 export const ListTracksResponseSchema: GenMessage<ListTracksResponse> = /*@__PURE__*/
-  messageDesc(file_library_v1_library, 9);
+  messageDesc(file_library_v1_library, 11);
 
 /**
  * @generated from message library.v1.GetTrackRequest
@@ -244,7 +303,7 @@ export type GetTrackRequest = Message<"library.v1.GetTrackRequest"> & {
  * Use `create(GetTrackRequestSchema)` to create a new message.
  */
 export const GetTrackRequestSchema: GenMessage<GetTrackRequest> = /*@__PURE__*/
-  messageDesc(file_library_v1_library, 10);
+  messageDesc(file_library_v1_library, 12);
 
 /**
  * @generated from message library.v1.GetTrackResponse
@@ -261,7 +320,37 @@ export type GetTrackResponse = Message<"library.v1.GetTrackResponse"> & {
  * Use `create(GetTrackResponseSchema)` to create a new message.
  */
 export const GetTrackResponseSchema: GenMessage<GetTrackResponse> = /*@__PURE__*/
-  messageDesc(file_library_v1_library, 11);
+  messageDesc(file_library_v1_library, 13);
+
+/**
+ * BootlegFilter selects how a listing treats bootleg releases.
+ *
+ * @generated from enum library.v1.BootlegFilter
+ */
+export enum BootlegFilter {
+  /**
+   * BOOTLEG_FILTER_UNSPECIFIED lists bootlegs alongside everything else.
+   *
+   * @generated from enum value: BOOTLEG_FILTER_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: BOOTLEG_FILTER_EXCLUDE = 1;
+   */
+  EXCLUDE = 1,
+
+  /**
+   * @generated from enum value: BOOTLEG_FILTER_ONLY = 2;
+   */
+  ONLY = 2,
+}
+
+/**
+ * Describes the enum library.v1.BootlegFilter.
+ */
+export const BootlegFilterSchema: GenEnum<BootlegFilter> = /*@__PURE__*/
+  enumDesc(file_library_v1_library, 0);
 
 /**
  * @generated from service library.v1.LibraryService
@@ -298,6 +387,14 @@ export const LibraryService: GenService<{
     methodKind: "unary";
     input: typeof GetAlbumRequestSchema;
     output: typeof GetAlbumResponseSchema;
+  },
+  /**
+   * @generated from rpc library.v1.LibraryService.ListAlbumVersions
+   */
+  listAlbumVersions: {
+    methodKind: "unary";
+    input: typeof ListAlbumVersionsRequestSchema;
+    output: typeof ListAlbumVersionsResponseSchema;
   },
   /**
    * @generated from rpc library.v1.LibraryService.ListTracks

@@ -140,3 +140,80 @@ func TestAlbumGroupKey_Matching(t *testing.T) {
 		})
 	}
 }
+
+func TestAlbumFilter_Equal(t *testing.T) {
+	artistA := uuid.Must(uuid.NewV7())
+	artistB := uuid.Must(uuid.NewV7())
+
+	tests := []struct {
+		name string
+		a    AlbumFilter
+		b    AlbumFilter
+		want bool
+	}{
+		{
+			name: "zeroValues",
+			a:    AlbumFilter{},
+			b:    AlbumFilter{},
+			want: true,
+		},
+		{
+			name: "sameEveryField",
+			a:    AlbumFilter{ArtistID: artistA, IncludeAllVersions: true, Types: []AlbumType{AlbumMain, AlbumEP}, Bootlegs: BootlegsOnly},
+			b:    AlbumFilter{ArtistID: artistA, IncludeAllVersions: true, Types: []AlbumType{AlbumMain, AlbumEP}, Bootlegs: BootlegsOnly},
+			want: true,
+		},
+		{
+			name: "differentArtist",
+			a:    AlbumFilter{ArtistID: artistA},
+			b:    AlbumFilter{ArtistID: artistB},
+			want: false,
+		},
+		{
+			name: "differentVersions",
+			a:    AlbumFilter{IncludeAllVersions: true},
+			b:    AlbumFilter{},
+			want: false,
+		},
+		{
+			name: "differentBootlegs",
+			a:    AlbumFilter{Bootlegs: BootlegsExclude},
+			b:    AlbumFilter{Bootlegs: BootlegsOnly},
+			want: false,
+		},
+		{
+			name: "differentTypes",
+			a:    AlbumFilter{Types: []AlbumType{AlbumMain}},
+			b:    AlbumFilter{Types: []AlbumType{AlbumSingle}},
+			want: false,
+		},
+		{
+			name: "extraType",
+			a:    AlbumFilter{Types: []AlbumType{AlbumMain}},
+			b:    AlbumFilter{Types: []AlbumType{AlbumMain, AlbumEP}},
+			want: false,
+		},
+		{
+			name: "noTypesVersusSomeTypes",
+			a:    AlbumFilter{},
+			b:    AlbumFilter{Types: []AlbumType{AlbumMain}},
+			want: false,
+		},
+		{
+			// Equal is strict: callers normalize before comparing, so a
+			// reordered list is a different filter here.
+			name: "reorderedTypes",
+			a:    AlbumFilter{Types: []AlbumType{AlbumMain, AlbumEP}},
+			b:    AlbumFilter{Types: []AlbumType{AlbumEP, AlbumMain}},
+			want: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.a.Equal(tc.b); got != tc.want {
+				t.Errorf("AlbumFilter.Equal(%+v, %+v) = %v, want %v", tc.a, tc.b, got, tc.want)
+			}
+		})
+	}
+}

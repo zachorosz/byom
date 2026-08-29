@@ -295,3 +295,71 @@ func TestLibraryStore_ReplaceDirAlbums_PrimaryVersion(t *testing.T) {
 		t.Errorf("primary versions mismatch (-want +got):\n%s", diff)
 	}
 }
+
+func TestLibraryStore_ReplaceDirAlbums_PromotesPrimaryAfterDelete(t *testing.T) {
+	ctx := context.Background()
+	db := newTestDB(t)
+	s := NewLibraryStore(db)
+
+	dir1, files1 := seedDir(t, db, 1)
+	dir2, files2 := seedDir(t, db, 1)
+	artist := insertTestArtist(t, s, "Artist A")
+
+	if err := s.ReplaceDirAlbums(ctx, dir1,
+		[]metadata.ImportAlbum{testAlbum(dir1, artist, "Album", "group-1", files1)}); err != nil {
+		t.Fatalf("ReplaceDirAlbums(ctx, dir1, album) failed: %v", err)
+	}
+	remaster := testAlbum(dir2, artist, "Album (Remaster)", "group-1", files2)
+	if err := s.ReplaceDirAlbums(ctx, dir2, []metadata.ImportAlbum{remaster}); err != nil {
+		t.Fatalf("ReplaceDirAlbums(ctx, dir2, album) failed: %v", err)
+	}
+
+	// dir1 held the group's primary; emptying it must hand primary to
+	// the surviving version rather than leaving the group with none.
+	if err := s.ReplaceDirAlbums(ctx, dir1, nil); err != nil {
+		t.Fatalf("ReplaceDirAlbums(ctx, dir1, nil) failed: %v", err)
+	}
+
+	var gotPrimary bool
+	if err := db.QueryRowContext(ctx,
+		`SELECT primary_version FROM albums WHERE id = ?`, remaster.Album.ID).Scan(&gotPrimary); err != nil {
+		t.Fatalf("read surviving album failed: %v", err)
+	}
+	if !gotPrimary {
+		t.Errorf("surviving album primary_version = false, want true")
+	}
+}
+
+func TestLibraryStore_ReplaceDirAlbums_KeepsPrimaryOnUnaffectedGroup(t *testing.T) {
+	ctx := context.Background()
+	db := newTestDB(t)
+	s := NewLibraryStore(db)
+
+	dir1, files1 := seedDir(t, db, 1)
+	dir2, files2 := seedDir(t, db, 1)
+	artist := insertTestArtist(t, s, "Artist A")
+
+	original := testAlbum(dir1, artist, "Album", "group-1", files1)
+	if err := s.ReplaceDirAlbums(ctx, dir1, []metadata.ImportAlbum{original}); err != nil {
+		t.Fatalf("ReplaceDirAlbums(ctx, dir1, album) failed: %v", err)
+	}
+	remaster := testAlbum(dir2, artist, "Album (Remaster)", "group-1", files2)
+	if err := s.ReplaceDirAlbums(ctx, dir2, []metadata.ImportAlbum{remaster}); err != nil {
+		t.Fatalf("ReplaceDirAlbums(ctx, dir2, album) failed: %v", err)
+	}
+
+	// Reimporting the non-primary dir must not shuffle primary around.
+	if err := s.ReplaceDirAlbums(ctx, dir2, []metadata.ImportAlbum{remaster}); err != nil {
+		t.Fatalf("ReplaceDirAlbums(ctx, dir2, album) reimport failed: %v", err)
+	}
+
+	var gotPrimaryID uuid.UUID
+	if err := db.QueryRowContext(ctx,
+		`SELECT id FROM albums WHERE group_key = 'group-1' AND primary_version = 1`).
+		Scan(&gotPrimaryID); err != nil {
+		t.Fatalf("read group primary failed: %v", err)
+	}
+	if gotPrimaryID != original.Album.ID {
+		t.Errorf("group primary = %v, want original album %v", gotPrimaryID, original.Album.ID)
+	}
+}

@@ -29,10 +29,10 @@ type fakeLibrary struct {
 	next    string
 	err     error
 
-	gotToken    string
-	gotLimit    int
-	gotArtistID uuid.UUID
-	gotAlbumID  uuid.UUID
+	gotToken   string
+	gotLimit   int
+	gotFilter  library.AlbumFilter
+	gotAlbumID uuid.UUID
 }
 
 func (f *fakeLibrary) Artist(_ context.Context, _ uuid.UUID) (library.Artist, error) {
@@ -54,9 +54,14 @@ func (f *fakeLibrary) Album(_ context.Context, _ uuid.UUID) (library.Album, erro
 	return f.albums[0], nil
 }
 
-func (f *fakeLibrary) Albums(_ context.Context, artistID uuid.UUID, token string, limit int) ([]library.Album, string, error) {
-	f.gotArtistID, f.gotToken, f.gotLimit = artistID, token, limit
+func (f *fakeLibrary) Albums(_ context.Context, filter library.AlbumFilter, token string, limit int) ([]library.Album, string, error) {
+	f.gotFilter, f.gotToken, f.gotLimit = filter, token, limit
 	return f.albums, f.next, f.err
+}
+
+func (f *fakeLibrary) AlbumVersions(_ context.Context, id uuid.UUID) ([]library.Album, error) {
+	f.gotAlbumID = id
+	return f.albums, f.err
 }
 
 func (f *fakeLibrary) Track(_ context.Context, _ uuid.UUID) (library.Track, error) {
@@ -181,8 +186,8 @@ func TestLibraryServer_ListAlbums_PassesArtistFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListAlbums(ctx, %v) failed: %v", req, err)
 	}
-	if store.gotArtistID != artistID {
-		t.Errorf("Albums() artist filter = %v, want %v", store.gotArtistID, artistID)
+	if store.gotFilter.ArtistID != artistID {
+		t.Errorf("Albums() artist filter = %v, want %v", store.gotFilter.ArtistID, artistID)
 	}
 
 	want := &libraryv1.ListAlbumsResponse{
@@ -208,8 +213,217 @@ func TestLibraryServer_ListAlbums_OmittedArtistFilter(t *testing.T) {
 	if _, err := client.ListAlbums(context.Background(), req); err != nil {
 		t.Fatalf("ListAlbums(ctx, %v) failed: %v", req, err)
 	}
-	if store.gotArtistID != uuid.Nil {
-		t.Errorf("Albums() artist filter = %v, want uuid.Nil", store.gotArtistID)
+	if store.gotFilter.ArtistID != uuid.Nil {
+		t.Errorf("Albums() artist filter = %v, want uuid.Nil", store.gotFilter.ArtistID)
+	}
+}
+
+func TestLibraryServer_ListAlbums_VersionFilter(t *testing.T) {
+	tests := []struct {
+		name               string
+		includeAllVersions bool
+	}{
+		{name: "omitted", includeAllVersions: false},
+		{name: "requested", includeAllVersions: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &fakeLibrary{}
+			client := newTestClient(t, store)
+
+			req := &libraryv1.ListAlbumsRequest{IncludeAllVersions: tt.includeAllVersions}
+			if _, err := client.ListAlbums(context.Background(), req); err != nil {
+				t.Fatalf("ListAlbums(include_all_versions=%v) failed: %v", tt.includeAllVersions, err)
+			}
+			got := store.gotFilter.IncludeAllVersions
+			if got != tt.includeAllVersions {
+				t.Errorf("ListAlbums(include_all_versions=%v) filter = %v, want %v",
+					tt.includeAllVersions, got, tt.includeAllVersions)
+			}
+		})
+	}
+}
+
+func TestLibraryServer_ListAlbums_TypeAndBootlegFilters(t *testing.T) {
+	tests := []struct {
+		name string
+		req  *libraryv1.ListAlbumsRequest
+		want library.AlbumFilter
+	}{
+		{
+			name: "noFilters",
+			req:  &libraryv1.ListAlbumsRequest{},
+			want: library.AlbumFilter{},
+		},
+		{
+			name: "singleType",
+			req: &libraryv1.ListAlbumsRequest{
+				AlbumTypes: []libraryv1.AlbumType{libraryv1.AlbumType_ALBUM_TYPE_MAIN},
+			},
+			want: library.AlbumFilter{Types: []library.AlbumType{library.AlbumMain}},
+		},
+		{
+			name: "untaggedType",
+			req: &libraryv1.ListAlbumsRequest{
+				AlbumTypes: []libraryv1.AlbumType{libraryv1.AlbumType_ALBUM_TYPE_UNSPECIFIED},
+			},
+			want: library.AlbumFilter{Types: []library.AlbumType{library.AlbumTypeUnknown}},
+		},
+		{
+			// Sorted and deduplicated so that two requests for the same
+			// set of types share one page token.
+			name: "unorderedDuplicateTypes",
+			req: &libraryv1.ListAlbumsRequest{
+				AlbumTypes: []libraryv1.AlbumType{
+					libraryv1.AlbumType_ALBUM_TYPE_SINGLE,
+					libraryv1.AlbumType_ALBUM_TYPE_EP,
+					libraryv1.AlbumType_ALBUM_TYPE_SINGLE,
+				},
+			},
+			want: library.AlbumFilter{Types: []library.AlbumType{library.AlbumEP, library.AlbumSingle}},
+		},
+		{
+			name: "excludeBootlegs",
+			req:  &libraryv1.ListAlbumsRequest{Bootlegs: libraryv1.BootlegFilter_BOOTLEG_FILTER_EXCLUDE},
+			want: library.AlbumFilter{Bootlegs: library.BootlegsExclude},
+		},
+		{
+			name: "onlyBootlegs",
+			req:  &libraryv1.ListAlbumsRequest{Bootlegs: libraryv1.BootlegFilter_BOOTLEG_FILTER_ONLY},
+			want: library.AlbumFilter{Bootlegs: library.BootlegsOnly},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &fakeLibrary{}
+			client := newTestClient(t, store)
+
+			if _, err := client.ListAlbums(context.Background(), tt.req); err != nil {
+				t.Fatalf("ListAlbums() failed: %v", err)
+			}
+
+			if diff := cmp.Diff(tt.want, store.gotFilter); diff != "" {
+				t.Errorf("ListAlbums() filter mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestLibraryServer_ListAlbums_UnknownAlbumType(t *testing.T) {
+	client := newTestClient(t, &fakeLibrary{})
+
+	// An enum value this server does not know must not silently widen
+	// the listing to every type.
+	req := &libraryv1.ListAlbumsRequest{AlbumTypes: []libraryv1.AlbumType{99}}
+	_, err := client.ListAlbums(context.Background(), req)
+	if got, want := connect.CodeOf(err), connect.CodeInvalidArgument; got != want {
+		t.Errorf("ListAlbums(album_types=[99]) code = %v, want %v (err: %v)", got, want, err)
+	}
+}
+
+func TestLibraryServer_ListAlbumVersions(t *testing.T) {
+	artistID := uuid.Must(uuid.NewV7())
+	primary := library.Album{
+		ID:             uuid.Must(uuid.NewV7()),
+		Title:          "Album One",
+		Type:           library.AlbumMain,
+		PrimaryVersion: true,
+		Artists: []library.AlbumArtist{
+			{ArtistID: artistID, CreditedName: "Artist A"},
+		},
+	}
+	remaster := library.Album{
+		ID:      uuid.Must(uuid.NewV7()),
+		Title:   "Album One",
+		Type:    library.AlbumMain,
+		Version: "2011 Remaster",
+		Artists: []library.AlbumArtist{
+			{ArtistID: artistID, CreditedName: "Artist A"},
+		},
+	}
+	store := &fakeLibrary{albums: []library.Album{primary, remaster}}
+	client := newTestClient(t, store)
+
+	got, err := client.ListAlbumVersions(context.Background(),
+		&libraryv1.ListAlbumVersionsRequest{AlbumId: remaster.ID.String()})
+	if err != nil {
+		t.Fatalf("ListAlbumVersions(%v) failed: %v", remaster.ID, err)
+	}
+	if store.gotAlbumID != remaster.ID {
+		t.Errorf("ListAlbumVersions(%v) album = %v, want %v", remaster.ID, store.gotAlbumID, remaster.ID)
+	}
+
+	artists := []*libraryv1.AlbumArtist{
+		{ArtistId: artistID.String(), CreditedName: "Artist A"},
+	}
+	want := &libraryv1.ListAlbumVersionsResponse{
+		Items: []*libraryv1.Album{
+			{
+				Id:             primary.ID.String(),
+				Title:          "Album One",
+				AlbumType:      libraryv1.AlbumType_ALBUM_TYPE_MAIN,
+				PrimaryVersion: true,
+				Artists:        artists,
+			},
+			{
+				Id:        remaster.ID.String(),
+				Title:     "Album One",
+				AlbumType: libraryv1.AlbumType_ALBUM_TYPE_MAIN,
+				Version:   "2011 Remaster",
+				Artists:   artists,
+			},
+		},
+	}
+	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+		t.Errorf("ListAlbumVersions(%v) mismatch (-want +got):\n%s", remaster.ID, diff)
+	}
+}
+
+func TestLibraryServer_ListAlbumVersions_Errors(t *testing.T) {
+	tests := []struct {
+		name    string
+		albumID string
+		store   *fakeLibrary
+		want    connect.Code
+	}{
+		{
+			name:    "missingID",
+			albumID: "",
+			store:   &fakeLibrary{},
+			want:    connect.CodeInvalidArgument,
+		},
+		{
+			name:    "malformedID",
+			albumID: "not-a-uuid",
+			store:   &fakeLibrary{},
+			want:    connect.CodeInvalidArgument,
+		},
+		{
+			name:    "unknownAlbum",
+			albumID: uuid.Must(uuid.NewV7()).String(),
+			store:   &fakeLibrary{err: library.ErrNotFound},
+			want:    connect.CodeNotFound,
+		},
+		{
+			name:    "storeFailure",
+			albumID: uuid.Must(uuid.NewV7()).String(),
+			store:   &fakeLibrary{err: errors.New("disk on fire")},
+			want:    connect.CodeInternal,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := newTestClient(t, tt.store)
+
+			_, err := client.ListAlbumVersions(context.Background(),
+				&libraryv1.ListAlbumVersionsRequest{AlbumId: tt.albumID})
+			if got := connect.CodeOf(err); got != tt.want {
+				t.Errorf("ListAlbumVersions(%q) code = %v, want %v (err: %v)", tt.albumID, got, tt.want, err)
+			}
+		})
 	}
 }
 

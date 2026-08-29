@@ -78,7 +78,8 @@ func (s *LibraryStore) InsertArtist(ctx context.Context, artist library.Artist, 
 // (file_id, start_offset_ns); matches keep their row IDs so external
 // references survive reparses. A track whose file moved dirs is
 // adopted by the new dir's album rather than recreated. Everything
-// else previously imported for the dir is deleted.
+// else previously imported for the dir is deleted. A version group
+// that loses its primary to that delete promotes its oldest survivor.
 func (s *LibraryStore) ReplaceDirAlbums(ctx context.Context, dirID uuid.UUID, albums []metadata.ImportAlbum) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -120,11 +121,65 @@ func (s *LibraryStore) ReplaceDirAlbums(ctx context.Context, dirID uuid.UUID, al
 		}
 	}
 
+	// Read before the delete: afterwards the groups whose primary this
+	// dir owned are no longer discoverable from dirID.
+	groupKeys, err := dirPrimaryGroups(ctx, tx, dirID)
+	if err != nil {
+		return err
+	}
+
 	if err := deleteStale(ctx, tx, "albums", "id", "dir_id", dirID, keptAlbums); err != nil {
 		return err
 	}
 
+	if err := promoteOrphanedPrimaries(ctx, tx, groupKeys); err != nil {
+		return err
+	}
+
 	return tx.Commit()
+}
+
+// dirPrimaryGroups returns the group keys of the albums under dirID
+// that currently hold their group's primary version.
+func dirPrimaryGroups(ctx context.Context, tx *sql.Tx, dirID uuid.UUID) ([]string, error) {
+	rows, err := tx.QueryContext(ctx,
+		`SELECT group_key FROM albums WHERE dir_id = ? AND primary_version = 1`, dirID)
+	if err != nil {
+		return nil, fmt.Errorf("list dir primary groups: %w", err)
+	}
+	defer rows.Close()
+
+	var keys []string
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, fmt.Errorf("scan dir primary group: %w", err)
+		}
+		keys = append(keys, key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate dir primary groups: %w", err)
+	}
+	return keys, nil
+}
+
+// promoteOrphanedPrimaries restores the one-primary-per-group
+// invariant for each group in groupKeys that no longer has a primary
+// version, promoting its oldest surviving album. Groups that kept a
+// primary, and groups whose albums are all gone, are left untouched.
+func promoteOrphanedPrimaries(ctx context.Context, tx *sql.Tx, groupKeys []string) error {
+	for _, key := range groupKeys {
+		// IDs are UUIDv7, so MIN picks the earliest imported version.
+		if _, err := tx.ExecContext(ctx,
+			`UPDATE albums SET primary_version = 1
+			 WHERE id = (SELECT MIN(id) FROM albums WHERE group_key = ?)
+			   AND NOT EXISTS (
+				SELECT 1 FROM albums WHERE group_key = ? AND primary_version = 1)`,
+			key, key); err != nil {
+			return fmt.Errorf("promote group primary: %w", err)
+		}
+	}
+	return nil
 }
 
 func upsertAlbum(ctx context.Context, tx *sql.Tx, al library.Album) (uuid.UUID, error) {

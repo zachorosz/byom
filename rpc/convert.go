@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"fmt"
+	"slices"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -20,6 +21,53 @@ var albumTypes = map[library.AlbumType]libraryv1.AlbumType{
 	library.AlbumSingle:      libraryv1.AlbumType_ALBUM_TYPE_SINGLE,
 	library.AlbumEP:          libraryv1.AlbumType_ALBUM_TYPE_EP,
 	library.AlbumOther:       libraryv1.AlbumType_ALBUM_TYPE_OTHER,
+}
+
+var albumTypesByProto = func() map[libraryv1.AlbumType]library.AlbumType {
+	byProto := make(map[libraryv1.AlbumType]library.AlbumType, len(albumTypes))
+	for domain, pb := range albumTypes {
+		byProto[pb] = domain
+	}
+	return byProto
+}()
+
+var bootlegFilters = map[libraryv1.BootlegFilter]library.BootlegFilter{
+	libraryv1.BootlegFilter_BOOTLEG_FILTER_UNSPECIFIED: library.BootlegsInclude,
+	libraryv1.BootlegFilter_BOOTLEG_FILTER_EXCLUDE:     library.BootlegsExclude,
+	libraryv1.BootlegFilter_BOOTLEG_FILTER_ONLY:        library.BootlegsOnly,
+}
+
+// albumTypeFilter converts requested album types into a sorted,
+// deduplicated filter so that equivalent requests share a page token.
+//
+// It fails with InvalidArgument on an unrecognized type rather than
+// dropping it, which would silently widen the listing.
+func albumTypeFilter(field string, pbTypes []libraryv1.AlbumType) ([]library.AlbumType, error) {
+	if len(pbTypes) == 0 {
+		return nil, nil
+	}
+	types := make([]library.AlbumType, 0, len(pbTypes))
+	for _, pb := range pbTypes {
+		t, ok := albumTypesByProto[pb]
+		if !ok {
+			return nil, connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("%s: unknown album type %d", field, pb))
+		}
+		types = append(types, t)
+	}
+	slices.Sort(types)
+	return slices.Compact(types), nil
+}
+
+// bootlegFilter converts a requested bootleg filter, failing with
+// InvalidArgument on an unrecognized value.
+func bootlegFilter(field string, pb libraryv1.BootlegFilter) (library.BootlegFilter, error) {
+	f, ok := bootlegFilters[pb]
+	if !ok {
+		return "", connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("%s: unknown bootleg filter %d", field, pb))
+	}
+	return f, nil
 }
 
 func artistProto(a library.Artist) *libraryv1.Artist {

@@ -3,6 +3,7 @@ package library
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/google/uuid"
@@ -49,6 +50,42 @@ type Album struct {
 type AlbumArtist struct {
 	ArtistID     uuid.UUID
 	CreditedName string
+}
+
+// BootlegFilter selects how a listing treats bootleg releases.
+type BootlegFilter string
+
+const (
+	// BootlegsInclude is the zero value, listing bootlegs alongside
+	// everything else.
+	BootlegsInclude BootlegFilter = ""
+	BootlegsExclude BootlegFilter = "exclude"
+	BootlegsOnly    BootlegFilter = "only"
+)
+
+// AlbumFilter narrows an album listing. Its zero value lists every
+// release once, represented by its primary version.
+type AlbumFilter struct {
+	// ArtistID restricts the listing to a credited artist when set.
+	ArtistID uuid.UUID `json:"artist_id"`
+	// IncludeAllVersions lists a group's alternate versions alongside
+	// its primary rather than the primary alone.
+	IncludeAllVersions bool `json:"all_versions"`
+	// Types restricts the listing to the given release types. An empty
+	// slice matches every type.
+	Types    []AlbumType   `json:"types,omitempty"`
+	Bootlegs BootlegFilter `json:"bootlegs,omitempty"`
+}
+
+// Equal reports whether two filters select the same albums.
+//
+// Types are compared in order, so callers that accept them from
+// outside should sort and deduplicate first.
+func (f AlbumFilter) Equal(other AlbumFilter) bool {
+	return f.ArtistID == other.ArtistID &&
+		f.IncludeAllVersions == other.IncludeAllVersions &&
+		f.Bootlegs == other.Bootlegs &&
+		slices.Equal(f.Types, other.Types)
 }
 
 // AlbumGroupKey generates a key for clustering album versions (dirs) to a

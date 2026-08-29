@@ -10,8 +10,8 @@ import { rpc } from '../../lib/rpc/client';
 export default function Albums() {
   const [params] = useSearchParams();
 
-  // The key is the filter set. Nothing filters yet — ListAlbums takes no sort
-  // or filter params — but the plumbing is here so adding one is a one-liner.
+  // The key is the filter set. ListAlbums returns one entry per release by
+  // default, so alternate versions stay on the album page rather than the grid.
   const key = () => `albums:${JSON.stringify(params)}`;
 
   const list = createInfiniteList(key, (pageToken) =>

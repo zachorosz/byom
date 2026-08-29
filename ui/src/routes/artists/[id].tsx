@@ -1,25 +1,54 @@
-import { Title } from '@solidjs/meta';
-import type { RouteDefinition, RouteProps } from '@solidjs/router';
-import { createMemo, Show } from 'solid-js';
+import { Title } from "@solidjs/meta";
+import type { RouteDefinition, RouteProps } from "@solidjs/router";
+import { createMemo, For, Show } from "solid-js";
+import { AlbumType } from "@proto/library/v1/album_pb";
+import { BootlegFilter } from "@proto/library/v1/library_pb";
 
-import InfiniteScrollSentinel from '../../components/InfiniteScrollSentinel';
-import AlbumGrid from '../../features/library/AlbumGrid';
-import { createInfiniteList } from '../../lib/pagination';
-import { rpc } from '../../lib/rpc/client';
-import { getArtist } from '../../lib/rpc/library';
+import AlbumSection from "../../features/library/AlbumSection";
+import { rpc } from "../../lib/rpc/client";
+import { getArtist } from "../../lib/rpc/library";
 
 export const route = {
   preload: ({ params }) => void getArtist(params.id!),
 } satisfies RouteDefinition;
 
-export default function ArtistDetail(props: RouteProps<'/artists/:id'>) {
+interface Section {
+  heading: string;
+  albumTypes: AlbumType[];
+  bootlegs: BootlegFilter;
+}
+
+// Bootlegs are pulled out of the type sections and given their own, so no
+// release is listed twice and none is hidden. Untagged releases ride with
+// Other; without that they would belong to no section at all.
+const SECTIONS: Section[] = [
+  {
+    heading: "Albums",
+    albumTypes: [AlbumType.MAIN, AlbumType.UNSPECIFIED],
+    bootlegs: BootlegFilter.EXCLUDE,
+  },
+  {
+    heading: "Singles & EPs",
+    albumTypes: [AlbumType.SINGLE, AlbumType.EP],
+    bootlegs: BootlegFilter.EXCLUDE,
+  },
+  {
+    heading: "Other",
+    albumTypes: [AlbumType.OTHER],
+    bootlegs: BootlegFilter.EXCLUDE,
+  },
+  {
+    heading: "Bootlegs",
+    albumTypes: [],
+    bootlegs: BootlegFilter.ONLY,
+  },
+];
+
+export default function ArtistDetail(props: RouteProps<"/artists/:id">) {
   // Await: the query returns a Promise, so reading `.artist` off it directly
   // yields undefined.
-  const artist = createMemo(async () => (await getArtist(props.params.id)).artist);
-
-  const { items, loading, done, loadMore } = createInfiniteList(
-    () => `albums:artist=${props.params.id}`,
-    (pageToken) => rpc.library.listAlbums({ artistId: props.params.id, pageToken }),
+  const artist = createMemo(
+    async () => (await getArtist(props.params.id)).artist,
   );
 
   return (
@@ -32,11 +61,22 @@ export default function ArtistDetail(props: RouteProps<'/artists/:id'>) {
           </>
         )}
       </Show>
-      <AlbumGrid albums={items} />
-      <InfiniteScrollSentinel onIntersect={loadMore} disabled={loading() || done()} />
-      <Show when={loading()}>
-        <p class="text-muted py-4 font-mono text-xs">Loading…</p>
-      </Show>
+      <For each={SECTIONS}>
+        {(section) => (
+          <AlbumSection
+            heading={section.heading}
+            listKey={`albums:artist=${props.params.id}:${section.heading}`}
+            fetchPage={(pageToken) =>
+              rpc.library.listAlbums({
+                artistId: props.params.id,
+                albumTypes: section.albumTypes,
+                bootlegs: section.bootlegs,
+                pageToken,
+              })
+            }
+          />
+        )}
+      </For>
     </main>
   );
 }
