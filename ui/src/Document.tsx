@@ -1,13 +1,9 @@
 import type { ParentProps } from 'solid-js';
 import { HydrationScript } from '@solidjs/web';
 
-// The document shell — the new index.html: picked up by the src/Document.*
-// convention, it wraps the app in the plugin's generated entries and must
-// render the full <html>. Head tags go here. It is compiled only into the
-// prerendered static shell and ships zero client-side JS: in client mode
-// <HydrationScript /> is stripped from the shell, and it activates when the
-// app flips to SSR (`ssr: true` in vite.config.ts) — no document changes
-// needed. Delete this file to fall back to the plugin's built-in shell.
+// The document shell — head tags go here. Compiled only into the prerendered
+// static shell; <HydrationScript /> is stripped in client mode and activates
+// if vite.config.ts flips to `ssr: true`.
 export default function Document(props: ParentProps) {
   return (
     <html lang="en">
@@ -15,10 +11,16 @@ export default function Document(props: ParentProps) {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
-        <title>Solid App</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        />
+        <title>byom</title>
         <HydrationScript />
       </head>
-      <body class="text-center font-sans">{props.children}</body>
+      <body class="bg-ground text-ink font-sans">{props.children}</body>
     </html>
   );
 }
