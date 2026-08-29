@@ -45,6 +45,10 @@ type Album struct {
 	GroupKey       string
 	Version        string
 	PrimaryVersion bool
+
+	// ArtistSort is the first credited artist's sort name, set by the
+	// store on write.
+	ArtistSort string
 }
 
 type AlbumArtist struct {
@@ -63,9 +67,23 @@ const (
 	BootlegsOnly    BootlegFilter = "only"
 )
 
-// AlbumFilter narrows an album listing. Its zero value lists every
-// release once, represented by its primary version.
-type AlbumFilter struct {
+// AlbumOrder selects the sort order of an album listing.
+type AlbumOrder string
+
+const (
+	// AlbumOrderTitle is the zero value, sorting by album title.
+	AlbumOrderTitle AlbumOrder = ""
+	// AlbumOrderArtist sorts by the credited artist's sort name, then
+	// by original release date within each artist.
+	AlbumOrderArtist        AlbumOrder = "artist"
+	AlbumOrderReleaseDate   AlbumOrder = "release_date"
+	AlbumOrderOriginalDate  AlbumOrder = "original_date"
+	AlbumOrderRecentlyAdded AlbumOrder = "recently_added"
+)
+
+// AlbumQuery narrows and sorts an album listing. Its zero value lists
+// every release once by title, represented by its primary version.
+type AlbumQuery struct {
 	// ArtistID restricts the listing to a credited artist when set.
 	ArtistID uuid.UUID `json:"artist_id"`
 	// IncludeAllVersions lists a group's alternate versions alongside
@@ -75,17 +93,24 @@ type AlbumFilter struct {
 	// slice matches every type.
 	Types    []AlbumType   `json:"types,omitempty"`
 	Bootlegs BootlegFilter `json:"bootlegs,omitempty"`
+
+	Order AlbumOrder `json:"order,omitempty"`
+	// Descending reverses the whole ordering, tie breakers included, so
+	// albums with an unknown date lead rather than trail.
+	Descending bool `json:"descending,omitempty"`
 }
 
-// Equal reports whether two filters select the same albums.
+// Equal reports whether two queries select and sort albums the same way.
 //
 // Types are compared in order, so callers that accept them from
 // outside should sort and deduplicate first.
-func (f AlbumFilter) Equal(other AlbumFilter) bool {
-	return f.ArtistID == other.ArtistID &&
-		f.IncludeAllVersions == other.IncludeAllVersions &&
-		f.Bootlegs == other.Bootlegs &&
-		slices.Equal(f.Types, other.Types)
+func (q AlbumQuery) Equal(other AlbumQuery) bool {
+	return q.ArtistID == other.ArtistID &&
+		q.IncludeAllVersions == other.IncludeAllVersions &&
+		q.Bootlegs == other.Bootlegs &&
+		q.Order == other.Order &&
+		q.Descending == other.Descending &&
+		slices.Equal(q.Types, other.Types)
 }
 
 // AlbumGroupKey generates a key for clustering album versions (dirs) to a

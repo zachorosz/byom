@@ -14,7 +14,7 @@ type LibraryReader interface {
 	Artist(ctx context.Context, id uuid.UUID) (library.Artist, error)
 	Artists(ctx context.Context, token string, limit int) ([]library.Artist, string, error)
 	Album(ctx context.Context, id uuid.UUID) (library.Album, error)
-	Albums(ctx context.Context, filter library.AlbumFilter, token string, limit int) ([]library.Album, string, error)
+	Albums(ctx context.Context, query library.AlbumQuery, token string, limit int) ([]library.Album, string, error)
 	AlbumVersions(ctx context.Context, id uuid.UUID) ([]library.Album, error)
 	Track(ctx context.Context, id uuid.UUID) (library.Track, error)
 	Tracks(ctx context.Context, albumID uuid.UUID, token string, limit int) ([]library.Track, string, error)
@@ -72,14 +72,20 @@ func (s *LibraryServer) ListAlbums(ctx context.Context, req *libraryv1.ListAlbum
 	if err != nil {
 		return nil, err
 	}
+	order, err := albumOrder("order", req.GetOrder())
+	if err != nil {
+		return nil, err
+	}
 
-	filter := library.AlbumFilter{
+	query := library.AlbumQuery{
 		ArtistID:           artistID,
 		IncludeAllVersions: req.GetIncludeAllVersions(),
 		Types:              types,
 		Bootlegs:           bootlegs,
+		Order:              order,
+		Descending:         req.GetDescending(),
 	}
-	albums, next, err := s.store.Albums(ctx, filter, req.GetPageToken(), int(req.GetPageSize()))
+	albums, next, err := s.store.Albums(ctx, query, req.GetPageToken(), int(req.GetPageSize()))
 	if err != nil {
 		return nil, rpcError(err)
 	}

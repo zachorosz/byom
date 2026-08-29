@@ -31,7 +31,7 @@ type fakeLibrary struct {
 
 	gotToken   string
 	gotLimit   int
-	gotFilter  library.AlbumFilter
+	gotQuery   library.AlbumQuery
 	gotAlbumID uuid.UUID
 }
 
@@ -54,8 +54,8 @@ func (f *fakeLibrary) Album(_ context.Context, _ uuid.UUID) (library.Album, erro
 	return f.albums[0], nil
 }
 
-func (f *fakeLibrary) Albums(_ context.Context, filter library.AlbumFilter, token string, limit int) ([]library.Album, string, error) {
-	f.gotFilter, f.gotToken, f.gotLimit = filter, token, limit
+func (f *fakeLibrary) Albums(_ context.Context, query library.AlbumQuery, token string, limit int) ([]library.Album, string, error) {
+	f.gotQuery, f.gotToken, f.gotLimit = query, token, limit
 	return f.albums, f.next, f.err
 }
 
@@ -186,8 +186,8 @@ func TestLibraryServer_ListAlbums_PassesArtistFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListAlbums(ctx, %v) failed: %v", req, err)
 	}
-	if store.gotFilter.ArtistID != artistID {
-		t.Errorf("Albums() artist filter = %v, want %v", store.gotFilter.ArtistID, artistID)
+	if store.gotQuery.ArtistID != artistID {
+		t.Errorf("Albums() artist filter = %v, want %v", store.gotQuery.ArtistID, artistID)
 	}
 
 	want := &libraryv1.ListAlbumsResponse{
@@ -213,8 +213,8 @@ func TestLibraryServer_ListAlbums_OmittedArtistFilter(t *testing.T) {
 	if _, err := client.ListAlbums(context.Background(), req); err != nil {
 		t.Fatalf("ListAlbums(ctx, %v) failed: %v", req, err)
 	}
-	if store.gotFilter.ArtistID != uuid.Nil {
-		t.Errorf("Albums() artist filter = %v, want uuid.Nil", store.gotFilter.ArtistID)
+	if store.gotQuery.ArtistID != uuid.Nil {
+		t.Errorf("Albums() artist filter = %v, want uuid.Nil", store.gotQuery.ArtistID)
 	}
 }
 
@@ -236,7 +236,7 @@ func TestLibraryServer_ListAlbums_VersionFilter(t *testing.T) {
 			if _, err := client.ListAlbums(context.Background(), req); err != nil {
 				t.Fatalf("ListAlbums(include_all_versions=%v) failed: %v", tt.includeAllVersions, err)
 			}
-			got := store.gotFilter.IncludeAllVersions
+			got := store.gotQuery.IncludeAllVersions
 			if got != tt.includeAllVersions {
 				t.Errorf("ListAlbums(include_all_versions=%v) filter = %v, want %v",
 					tt.includeAllVersions, got, tt.includeAllVersions)
@@ -249,26 +249,26 @@ func TestLibraryServer_ListAlbums_TypeAndBootlegFilters(t *testing.T) {
 	tests := []struct {
 		name string
 		req  *libraryv1.ListAlbumsRequest
-		want library.AlbumFilter
+		want library.AlbumQuery
 	}{
 		{
 			name: "noFilters",
 			req:  &libraryv1.ListAlbumsRequest{},
-			want: library.AlbumFilter{},
+			want: library.AlbumQuery{},
 		},
 		{
 			name: "singleType",
 			req: &libraryv1.ListAlbumsRequest{
 				AlbumTypes: []libraryv1.AlbumType{libraryv1.AlbumType_ALBUM_TYPE_MAIN},
 			},
-			want: library.AlbumFilter{Types: []library.AlbumType{library.AlbumMain}},
+			want: library.AlbumQuery{Types: []library.AlbumType{library.AlbumMain}},
 		},
 		{
 			name: "untaggedType",
 			req: &libraryv1.ListAlbumsRequest{
 				AlbumTypes: []libraryv1.AlbumType{libraryv1.AlbumType_ALBUM_TYPE_UNSPECIFIED},
 			},
-			want: library.AlbumFilter{Types: []library.AlbumType{library.AlbumTypeUnknown}},
+			want: library.AlbumQuery{Types: []library.AlbumType{library.AlbumTypeUnknown}},
 		},
 		{
 			// Sorted and deduplicated so that two requests for the same
@@ -281,17 +281,17 @@ func TestLibraryServer_ListAlbums_TypeAndBootlegFilters(t *testing.T) {
 					libraryv1.AlbumType_ALBUM_TYPE_SINGLE,
 				},
 			},
-			want: library.AlbumFilter{Types: []library.AlbumType{library.AlbumEP, library.AlbumSingle}},
+			want: library.AlbumQuery{Types: []library.AlbumType{library.AlbumEP, library.AlbumSingle}},
 		},
 		{
 			name: "excludeBootlegs",
 			req:  &libraryv1.ListAlbumsRequest{Bootlegs: libraryv1.BootlegFilter_BOOTLEG_FILTER_EXCLUDE},
-			want: library.AlbumFilter{Bootlegs: library.BootlegsExclude},
+			want: library.AlbumQuery{Bootlegs: library.BootlegsExclude},
 		},
 		{
 			name: "onlyBootlegs",
 			req:  &libraryv1.ListAlbumsRequest{Bootlegs: libraryv1.BootlegFilter_BOOTLEG_FILTER_ONLY},
-			want: library.AlbumFilter{Bootlegs: library.BootlegsOnly},
+			want: library.AlbumQuery{Bootlegs: library.BootlegsOnly},
 		},
 	}
 
@@ -304,10 +304,66 @@ func TestLibraryServer_ListAlbums_TypeAndBootlegFilters(t *testing.T) {
 				t.Fatalf("ListAlbums() failed: %v", err)
 			}
 
-			if diff := cmp.Diff(tt.want, store.gotFilter); diff != "" {
+			if diff := cmp.Diff(tt.want, store.gotQuery); diff != "" {
 				t.Errorf("ListAlbums() filter mismatch (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestLibraryServer_ListAlbums_Ordering(t *testing.T) {
+	tests := []struct {
+		name string
+		req  *libraryv1.ListAlbumsRequest
+		want library.AlbumQuery
+	}{
+		{
+			name: "unspecifiedIsTitle",
+			req:  &libraryv1.ListAlbumsRequest{},
+			want: library.AlbumQuery{Order: library.AlbumOrderTitle},
+		},
+		{
+			name: "explicitTitle",
+			req:  &libraryv1.ListAlbumsRequest{Order: libraryv1.AlbumOrder_ALBUM_ORDER_TITLE},
+			want: library.AlbumQuery{Order: library.AlbumOrderTitle},
+		},
+		{
+			name: "artist",
+			req:  &libraryv1.ListAlbumsRequest{Order: libraryv1.AlbumOrder_ALBUM_ORDER_ARTIST},
+			want: library.AlbumQuery{Order: library.AlbumOrderArtist},
+		},
+		{
+			name: "recentlyAddedDescending",
+			req: &libraryv1.ListAlbumsRequest{
+				Order:      libraryv1.AlbumOrder_ALBUM_ORDER_RECENTLY_ADDED,
+				Descending: true,
+			},
+			want: library.AlbumQuery{Order: library.AlbumOrderRecentlyAdded, Descending: true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &fakeLibrary{}
+			client := newTestClient(t, store)
+
+			if _, err := client.ListAlbums(context.Background(), tt.req); err != nil {
+				t.Fatalf("ListAlbums() failed: %v", err)
+			}
+			if diff := cmp.Diff(tt.want, store.gotQuery); diff != "" {
+				t.Errorf("ListAlbums() query mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestLibraryServer_ListAlbums_UnknownAlbumOrder(t *testing.T) {
+	client := newTestClient(t, &fakeLibrary{})
+
+	req := &libraryv1.ListAlbumsRequest{Order: libraryv1.AlbumOrder(99)}
+	_, err := client.ListAlbums(context.Background(), req)
+	if got, want := connect.CodeOf(err), connect.CodeInvalidArgument; got != want {
+		t.Errorf("ListAlbums(order=99) code = %v, want %v (err: %v)", got, want, err)
 	}
 }
 

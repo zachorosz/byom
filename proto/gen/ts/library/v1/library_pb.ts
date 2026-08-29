@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file library/v1/library.proto.
  */
 export const file_library_v1_library: GenFile = /*@__PURE__*/
-  fileDesc("ChhsaWJyYXJ5L3YxL2xpYnJhcnkucHJvdG8SCmxpYnJhcnkudjEiOwoSTGlzdEFydGlzdHNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJIlEKE0xpc3RBcnRpc3RzUmVzcG9uc2USIQoFaXRlbXMYASADKAsyEi5saWJyYXJ5LnYxLkFydGlzdBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiJgoQR2V0QXJ0aXN0UmVxdWVzdBISCgJpZBgBIAEoCUIGukgDyAEBIjcKEUdldEFydGlzdFJlc3BvbnNlEiIKBmFydGlzdBgBIAEoCzISLmxpYnJhcnkudjEuQXJ0aXN0IsQBChFMaXN0QWxidW1zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglhcnRpc3RfaWQYAyABKAkSHAoUaW5jbHVkZV9hbGxfdmVyc2lvbnMYBCABKAgSKgoLYWxidW1fdHlwZXMYBSADKA4yFS5saWJyYXJ5LnYxLkFsYnVtVHlwZRIrCghib290bGVncxgGIAEoDjIZLmxpYnJhcnkudjEuQm9vdGxlZ0ZpbHRlciJPChJMaXN0QWxidW1zUmVzcG9uc2USIAoFaXRlbXMYASADKAsyES5saWJyYXJ5LnYxLkFsYnVtEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSI0ChhMaXN0QWxidW1WZXJzaW9uc1JlcXVlc3QSGAoIYWxidW1faWQYASABKAlCBrpIA8gBASI9ChlMaXN0QWxidW1WZXJzaW9uc1Jlc3BvbnNlEiAKBWl0ZW1zGAEgAygLMhEubGlicmFyeS52MS5BbGJ1bSIlCg9HZXRBbGJ1bVJlcXVlc3QSEgoCaWQYASABKAlCBrpIA8gBASI0ChBHZXRBbGJ1bVJlc3BvbnNlEiAKBWFsYnVtGAEgASgLMhEubGlicmFyeS52MS5BbGJ1bSJMChFMaXN0VHJhY2tzUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRIQCghhbGJ1bV9pZBgDIAEoCSJPChJMaXN0VHJhY2tzUmVzcG9uc2USIAoFaXRlbXMYASADKAsyES5saWJyYXJ5LnYxLlRyYWNrEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIlCg9HZXRUcmFja1JlcXVlc3QSEgoCaWQYASABKAlCBrpIA8gBASI0ChBHZXRUcmFja1Jlc3BvbnNlEiAKBXRyYWNrGAEgASgLMhEubGlicmFyeS52MS5UcmFjaypkCg1Cb290bGVnRmlsdGVyEh4KGkJPT1RMRUdfRklMVEVSX1VOU1BFQ0lGSUVEEAASGgoWQk9PVExFR19GSUxURVJfRVhDTFVERRABEhcKE0JPT1RMRUdfRklMVEVSX09OTFkQAjLCBAoOTGlicmFyeVNlcnZpY2USUAoLTGlzdEFydGlzdHMSHi5saWJyYXJ5LnYxLkxpc3RBcnRpc3RzUmVxdWVzdBofLmxpYnJhcnkudjEuTGlzdEFydGlzdHNSZXNwb25zZSIAEkoKCUdldEFydGlzdBIcLmxpYnJhcnkudjEuR2V0QXJ0aXN0UmVxdWVzdBodLmxpYnJhcnkudjEuR2V0QXJ0aXN0UmVzcG9uc2UiABJNCgpMaXN0QWxidW1zEh0ubGlicmFyeS52MS5MaXN0QWxidW1zUmVxdWVzdBoeLmxpYnJhcnkudjEuTGlzdEFsYnVtc1Jlc3BvbnNlIgASRwoIR2V0QWxidW0SGy5saWJyYXJ5LnYxLkdldEFsYnVtUmVxdWVzdBocLmxpYnJhcnkudjEuR2V0QWxidW1SZXNwb25zZSIAEmIKEUxpc3RBbGJ1bVZlcnNpb25zEiQubGlicmFyeS52MS5MaXN0QWxidW1WZXJzaW9uc1JlcXVlc3QaJS5saWJyYXJ5LnYxLkxpc3RBbGJ1bVZlcnNpb25zUmVzcG9uc2UiABJNCgpMaXN0VHJhY2tzEh0ubGlicmFyeS52MS5MaXN0VHJhY2tzUmVxdWVzdBoeLmxpYnJhcnkudjEuTGlzdFRyYWNrc1Jlc3BvbnNlIgASRwoIR2V0VHJhY2sSGy5saWJyYXJ5LnYxLkdldFRyYWNrUmVxdWVzdBocLmxpYnJhcnkudjEuR2V0VHJhY2tSZXNwb25zZSIAQp0BCg5jb20ubGlicmFyeS52MUIMTGlicmFyeVByb3RvUAFaNGdpdGh1Yi5jb20vemFjaG9yb3N6L2J5b20vcHJvdG8vbGlicmFyeS92MTtsaWJyYXJ5djGiAgNMWFiqAgpMaWJyYXJ5LlYxygIKTGlicmFyeVxWMeICFkxpYnJhcnlcVjFcR1BCTWV0YWRhdGHqAgtMaWJyYXJ5OjpWMWIGcHJvdG8z", [file_buf_validate_validate, file_library_v1_artist, file_library_v1_album, file_library_v1_track]);
+  fileDesc("ChhsaWJyYXJ5L3YxL2xpYnJhcnkucHJvdG8SCmxpYnJhcnkudjEiOwoSTGlzdEFydGlzdHNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJIlEKE0xpc3RBcnRpc3RzUmVzcG9uc2USIQoFaXRlbXMYASADKAsyEi5saWJyYXJ5LnYxLkFydGlzdBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiJgoQR2V0QXJ0aXN0UmVxdWVzdBISCgJpZBgBIAEoCUIGukgDyAEBIjcKEUdldEFydGlzdFJlc3BvbnNlEiIKBmFydGlzdBgBIAEoCzISLmxpYnJhcnkudjEuQXJ0aXN0Iv8BChFMaXN0QWxidW1zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglhcnRpc3RfaWQYAyABKAkSHAoUaW5jbHVkZV9hbGxfdmVyc2lvbnMYBCABKAgSKgoLYWxidW1fdHlwZXMYBSADKA4yFS5saWJyYXJ5LnYxLkFsYnVtVHlwZRIrCghib290bGVncxgGIAEoDjIZLmxpYnJhcnkudjEuQm9vdGxlZ0ZpbHRlchIlCgVvcmRlchgHIAEoDjIWLmxpYnJhcnkudjEuQWxidW1PcmRlchISCgpkZXNjZW5kaW5nGAggASgIIk8KEkxpc3RBbGJ1bXNSZXNwb25zZRIgCgVpdGVtcxgBIAMoCzIRLmxpYnJhcnkudjEuQWxidW0SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIjQKGExpc3RBbGJ1bVZlcnNpb25zUmVxdWVzdBIYCghhbGJ1bV9pZBgBIAEoCUIGukgDyAEBIj0KGUxpc3RBbGJ1bVZlcnNpb25zUmVzcG9uc2USIAoFaXRlbXMYASADKAsyES5saWJyYXJ5LnYxLkFsYnVtIiUKD0dldEFsYnVtUmVxdWVzdBISCgJpZBgBIAEoCUIGukgDyAEBIjQKEEdldEFsYnVtUmVzcG9uc2USIAoFYWxidW0YASABKAsyES5saWJyYXJ5LnYxLkFsYnVtIkwKEUxpc3RUcmFja3NSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJEhAKCGFsYnVtX2lkGAMgASgJIk8KEkxpc3RUcmFja3NSZXNwb25zZRIgCgVpdGVtcxgBIAMoCzIRLmxpYnJhcnkudjEuVHJhY2sSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIiUKD0dldFRyYWNrUmVxdWVzdBISCgJpZBgBIAEoCUIGukgDyAEBIjQKEEdldFRyYWNrUmVzcG9uc2USIAoFdHJhY2sYASABKAsyES5saWJyYXJ5LnYxLlRyYWNrKrUBCgpBbGJ1bU9yZGVyEhsKF0FMQlVNX09SREVSX1VOU1BFQ0lGSUVEEAASFQoRQUxCVU1fT1JERVJfVElUTEUQARIWChJBTEJVTV9PUkRFUl9BUlRJU1QQAhIcChhBTEJVTV9PUkRFUl9SRUxFQVNFX0RBVEUQAxIdChlBTEJVTV9PUkRFUl9PUklHSU5BTF9EQVRFEAQSHgoaQUxCVU1fT1JERVJfUkVDRU5UTFlfQURERUQQBSpkCg1Cb290bGVnRmlsdGVyEh4KGkJPT1RMRUdfRklMVEVSX1VOU1BFQ0lGSUVEEAASGgoWQk9PVExFR19GSUxURVJfRVhDTFVERRABEhcKE0JPT1RMRUdfRklMVEVSX09OTFkQAjLCBAoOTGlicmFyeVNlcnZpY2USUAoLTGlzdEFydGlzdHMSHi5saWJyYXJ5LnYxLkxpc3RBcnRpc3RzUmVxdWVzdBofLmxpYnJhcnkudjEuTGlzdEFydGlzdHNSZXNwb25zZSIAEkoKCUdldEFydGlzdBIcLmxpYnJhcnkudjEuR2V0QXJ0aXN0UmVxdWVzdBodLmxpYnJhcnkudjEuR2V0QXJ0aXN0UmVzcG9uc2UiABJNCgpMaXN0QWxidW1zEh0ubGlicmFyeS52MS5MaXN0QWxidW1zUmVxdWVzdBoeLmxpYnJhcnkudjEuTGlzdEFsYnVtc1Jlc3BvbnNlIgASRwoIR2V0QWxidW0SGy5saWJyYXJ5LnYxLkdldEFsYnVtUmVxdWVzdBocLmxpYnJhcnkudjEuR2V0QWxidW1SZXNwb25zZSIAEmIKEUxpc3RBbGJ1bVZlcnNpb25zEiQubGlicmFyeS52MS5MaXN0QWxidW1WZXJzaW9uc1JlcXVlc3QaJS5saWJyYXJ5LnYxLkxpc3RBbGJ1bVZlcnNpb25zUmVzcG9uc2UiABJNCgpMaXN0VHJhY2tzEh0ubGlicmFyeS52MS5MaXN0VHJhY2tzUmVxdWVzdBoeLmxpYnJhcnkudjEuTGlzdFRyYWNrc1Jlc3BvbnNlIgASRwoIR2V0VHJhY2sSGy5saWJyYXJ5LnYxLkdldFRyYWNrUmVxdWVzdBocLmxpYnJhcnkudjEuR2V0VHJhY2tSZXNwb25zZSIAQp0BCg5jb20ubGlicmFyeS52MUIMTGlicmFyeVByb3RvUAFaNGdpdGh1Yi5jb20vemFjaG9yb3N6L2J5b20vcHJvdG8vbGlicmFyeS92MTtsaWJyYXJ5djGiAgNMWFiqAgpMaWJyYXJ5LlYxygIKTGlicmFyeVxWMeICFkxpYnJhcnlcVjFcR1BCTWV0YWRhdGHqAgtMaWJyYXJ5OjpWMWIGcHJvdG8z", [file_buf_validate_validate, file_library_v1_artist, file_library_v1_album, file_library_v1_track]);
 
 /**
  * @generated from message library.v1.ListArtistsRequest
@@ -136,6 +136,19 @@ export type ListAlbumsRequest = Message<"library.v1.ListAlbumsRequest"> & {
    * @generated from field: library.v1.BootlegFilter bootlegs = 6;
    */
   bootlegs: BootlegFilter;
+
+  /**
+   * @generated from field: library.v1.AlbumOrder order = 7;
+   */
+  order: AlbumOrder;
+
+  /**
+   * descending reverses the whole ordering, tie breakers included, so
+   * albums with an unknown date lead rather than trail.
+   *
+   * @generated from field: bool descending = 8;
+   */
+  descending: boolean;
 };
 
 /**
@@ -323,6 +336,55 @@ export const GetTrackResponseSchema: GenMessage<GetTrackResponse> = /*@__PURE__*
   messageDesc(file_library_v1_library, 13);
 
 /**
+ * AlbumOrder selects the sort order of an album listing. Every
+ * ordering breaks ties by album ID, so paging never skips or repeats.
+ *
+ * @generated from enum library.v1.AlbumOrder
+ */
+export enum AlbumOrder {
+  /**
+   * ALBUM_ORDER_UNSPECIFIED sorts by title.
+   *
+   * @generated from enum value: ALBUM_ORDER_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: ALBUM_ORDER_TITLE = 1;
+   */
+  TITLE = 1,
+
+  /**
+   * ALBUM_ORDER_ARTIST sorts by the credited artist's sort name, then
+   * by original release date within each artist.
+   *
+   * @generated from enum value: ALBUM_ORDER_ARTIST = 2;
+   */
+  ARTIST = 2,
+
+  /**
+   * @generated from enum value: ALBUM_ORDER_RELEASE_DATE = 3;
+   */
+  RELEASE_DATE = 3,
+
+  /**
+   * @generated from enum value: ALBUM_ORDER_ORIGINAL_DATE = 4;
+   */
+  ORIGINAL_DATE = 4,
+
+  /**
+   * @generated from enum value: ALBUM_ORDER_RECENTLY_ADDED = 5;
+   */
+  RECENTLY_ADDED = 5,
+}
+
+/**
+ * Describes the enum library.v1.AlbumOrder.
+ */
+export const AlbumOrderSchema: GenEnum<AlbumOrder> = /*@__PURE__*/
+  enumDesc(file_library_v1_library, 0);
+
+/**
  * BootlegFilter selects how a listing treats bootleg releases.
  *
  * @generated from enum library.v1.BootlegFilter
@@ -350,7 +412,7 @@ export enum BootlegFilter {
  * Describes the enum library.v1.BootlegFilter.
  */
 export const BootlegFilterSchema: GenEnum<BootlegFilter> = /*@__PURE__*/
-  enumDesc(file_library_v1_library, 0);
+  enumDesc(file_library_v1_library, 1);
 
 /**
  * @generated from service library.v1.LibraryService

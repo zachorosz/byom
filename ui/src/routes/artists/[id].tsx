@@ -2,7 +2,7 @@ import { Title } from "@solidjs/meta";
 import type { RouteDefinition, RouteProps } from "@solidjs/router";
 import { createMemo, For, Show } from "solid-js";
 import { AlbumType } from "@proto/library/v1/album_pb";
-import { BootlegFilter } from "@proto/library/v1/library_pb";
+import { AlbumOrder, BootlegFilter } from "@proto/library/v1/library_pb";
 
 import AlbumSection from "../../features/library/AlbumSection";
 import { rpc } from "../../lib/rpc/client";
@@ -71,6 +71,9 @@ export default function ArtistDetail(props: RouteProps<"/artists/:id">) {
                 artistId: props.params.id,
                 albumTypes: section.albumTypes,
                 bootlegs: section.bootlegs,
+                // Oldest first: a discography reads chronologically, and
+                // ascending keeps undated releases off the top.
+                order: AlbumOrder.ORIGINAL_DATE,
                 pageToken,
               })
             }

@@ -192,12 +192,20 @@ func upsertAlbum(ctx context.Context, tx *sql.Tx, al library.Album) (uuid.UUID, 
 		return uuid.Nil, fmt.Errorf("check group primary: %w", err)
 	}
 
+	// artist_sort is read from the artist row in the same statement so
+	// the two cannot drift. A nil ID matches nothing, leaving it empty.
+	var sortArtistID any
+	if len(al.Artists) > 0 {
+		sortArtistID = al.Artists[0].ArtistID
+	}
+
 	var id uuid.UUID
 	if err := tx.QueryRowContext(ctx,
 		`INSERT INTO albums (id, dir_id, title, album_type, release_date,
 			original_release_date, release_country, bootleg, compilation,
-			live, group_key, version, primary_version)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			live, group_key, version, primary_version, artist_sort)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+			COALESCE((SELECT sort_name FROM artists WHERE id = ?), ''))
 		 ON CONFLICT (dir_id, group_key) DO UPDATE SET
 			title = excluded.title,
 			album_type = excluded.album_type,
@@ -207,11 +215,12 @@ func upsertAlbum(ctx context.Context, tx *sql.Tx, al library.Album) (uuid.UUID, 
 			bootleg = excluded.bootleg,
 			compilation = excluded.compilation,
 			live = excluded.live,
-			version = excluded.version
+			version = excluded.version,
+			artist_sort = excluded.artist_sort
 		 RETURNING id`,
 		al.ID, al.DirID, al.Title, al.Type, al.ReleaseDate,
 		al.OriginalReleaseDate, al.ReleaseCountry, al.Bootleg, al.Compilation,
-		al.Live, al.GroupKey, al.Version, !hasPrimary,
+		al.Live, al.GroupKey, al.Version, !hasPrimary, sortArtistID,
 	).Scan(&id); err != nil {
 		return uuid.Nil, fmt.Errorf("upsert album: %w", err)
 	}

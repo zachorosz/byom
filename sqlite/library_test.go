@@ -296,6 +296,116 @@ func TestLibraryStore_ReplaceDirAlbums_PrimaryVersion(t *testing.T) {
 	}
 }
 
+// insertSortedArtist inserts an artist whose sort name differs from its
+// display name, so callers can tell the two apart.
+func insertSortedArtist(t *testing.T, s *LibraryStore, name, sortName string) library.Artist {
+	t.Helper()
+	artist := library.Artist{ID: uuid.Must(uuid.NewV7()), Name: name, SortName: sortName}
+	if err := s.InsertArtist(context.Background(), artist, library.NormalizeArtistName(name)); err != nil {
+		t.Fatalf("InsertArtist(%+v) failed: %v", artist, err)
+	}
+	return artist
+}
+
+func albumArtistSort(t *testing.T, db *sql.DB, albumID uuid.UUID) string {
+	t.Helper()
+	var sort string
+	if err := db.QueryRowContext(context.Background(),
+		`SELECT artist_sort FROM albums WHERE id = ?`, albumID).Scan(&sort); err != nil {
+		t.Fatalf("read artist_sort failed: %v", err)
+	}
+	return sort
+}
+
+func TestLibraryStore_ReplaceDirAlbums_DenormalizesArtistSort(t *testing.T) {
+	ctx := context.Background()
+	db := newTestDB(t)
+	s := NewLibraryStore(db)
+
+	dirID, fileIDs := seedDir(t, db, 1)
+	artist := insertSortedArtist(t, s, "The Murlocs", "Murlocs, The")
+
+	al := testAlbum(dirID, artist, "Young Blindness", "group-1", fileIDs)
+	if err := s.ReplaceDirAlbums(ctx, dirID, []metadata.ImportAlbum{al}); err != nil {
+		t.Fatalf("ReplaceDirAlbums() failed: %v", err)
+	}
+
+	// The sort name, not the credited name: "The Murlocs" files under M.
+	if got, want := albumArtistSort(t, db, al.Album.ID), "Murlocs, The"; got != want {
+		t.Errorf("artist_sort = %q, want %q", got, want)
+	}
+}
+
+func TestLibraryStore_ReplaceDirAlbums_ArtistSortUsesFirstCredit(t *testing.T) {
+	ctx := context.Background()
+	db := newTestDB(t)
+	s := NewLibraryStore(db)
+
+	dirID, fileIDs := seedDir(t, db, 1)
+	gizzard := insertSortedArtist(t, s, "King Gizzard & the Lizard Wizard", "King Gizzard")
+	osees := insertSortedArtist(t, s, "Osees", "Osees")
+
+	// A split files under its first credit, keeping it beside the rest of
+	// that artist's discography.
+	al := testAlbum(dirID, gizzard, "Split", "group-1", fileIDs)
+	al.Album.Artists = append(al.Album.Artists,
+		library.AlbumArtist{ArtistID: osees.ID, CreditedName: osees.Name})
+	if err := s.ReplaceDirAlbums(ctx, dirID, []metadata.ImportAlbum{al}); err != nil {
+		t.Fatalf("ReplaceDirAlbums() failed: %v", err)
+	}
+
+	if got, want := albumArtistSort(t, db, al.Album.ID), "King Gizzard"; got != want {
+		t.Errorf("artist_sort = %q, want %q", got, want)
+	}
+}
+
+func TestLibraryStore_ReplaceDirAlbums_RefreshesArtistSortOnReparse(t *testing.T) {
+	ctx := context.Background()
+	db := newTestDB(t)
+	s := NewLibraryStore(db)
+
+	dirID, fileIDs := seedDir(t, db, 1)
+	murlocs := insertSortedArtist(t, s, "The Murlocs", "Murlocs, The")
+	gizzard := insertSortedArtist(t, s, "King Gizzard & the Lizard Wizard", "King Gizzard")
+
+	al := testAlbum(dirID, murlocs, "Young Blindness", "group-1", fileIDs)
+	if err := s.ReplaceDirAlbums(ctx, dirID, []metadata.ImportAlbum{al}); err != nil {
+		t.Fatalf("ReplaceDirAlbums() failed: %v", err)
+	}
+
+	// Retagging the dir to a different artist must not leave the old
+	// sort key behind on the update path.
+	al.Album.Artists = []library.AlbumArtist{
+		{ArtistID: gizzard.ID, CreditedName: gizzard.Name},
+	}
+	if err := s.ReplaceDirAlbums(ctx, dirID, []metadata.ImportAlbum{al}); err != nil {
+		t.Fatalf("ReplaceDirAlbums() reparse failed: %v", err)
+	}
+
+	if got, want := albumArtistSort(t, db, al.Album.ID), "King Gizzard"; got != want {
+		t.Errorf("artist_sort = %q, want %q", got, want)
+	}
+}
+
+func TestLibraryStore_ReplaceDirAlbums_ArtistSortWithoutCredits(t *testing.T) {
+	ctx := context.Background()
+	db := newTestDB(t)
+	s := NewLibraryStore(db)
+
+	dirID, fileIDs := seedDir(t, db, 1)
+	artist := insertTestArtist(t, s, "Artist A")
+
+	al := testAlbum(dirID, artist, "Uncredited", "group-1", fileIDs)
+	al.Album.Artists = nil
+	if err := s.ReplaceDirAlbums(ctx, dirID, []metadata.ImportAlbum{al}); err != nil {
+		t.Fatalf("ReplaceDirAlbums() failed: %v", err)
+	}
+
+	if got := albumArtistSort(t, db, al.Album.ID); got != "" {
+		t.Errorf("artist_sort = %q, want empty", got)
+	}
+}
+
 func TestLibraryStore_ReplaceDirAlbums_PromotesPrimaryAfterDelete(t *testing.T) {
 	ctx := context.Background()
 	db := newTestDB(t)

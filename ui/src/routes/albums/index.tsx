@@ -1,6 +1,7 @@
 import { Title } from '@solidjs/meta';
 import { useSearchParams } from '@solidjs/router';
 import { Show } from 'solid-js';
+import { AlbumOrder } from '@proto/library/v1/library_pb';
 
 import InfiniteScrollSentinel from '../../components/InfiniteScrollSentinel';
 import AlbumGrid from '../../features/library/AlbumGrid';
@@ -14,8 +15,11 @@ export default function Albums() {
   // default, so alternate versions stay on the album page rather than the grid.
   const key = () => `albums:${JSON.stringify(params)}`;
 
+  // Artist order groups a discography together, each artist's albums in
+  // original release order. The order is bound to the page token, so it has to
+  // be sent with every page.
   const list = createInfiniteList(key, (pageToken) =>
-    rpc.library.listAlbums({ pageToken }),
+    rpc.library.listAlbums({ pageToken, order: AlbumOrder.ARTIST }),
   );
   const { items, loading, done, error, loadMore } = list;
   createScrollRestoration(list);

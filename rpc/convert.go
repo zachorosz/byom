@@ -59,6 +59,26 @@ func albumTypeFilter(field string, pbTypes []libraryv1.AlbumType) ([]library.Alb
 	return slices.Compact(types), nil
 }
 
+var albumOrders = map[libraryv1.AlbumOrder]library.AlbumOrder{
+	libraryv1.AlbumOrder_ALBUM_ORDER_UNSPECIFIED:    library.AlbumOrderTitle,
+	libraryv1.AlbumOrder_ALBUM_ORDER_TITLE:          library.AlbumOrderTitle,
+	libraryv1.AlbumOrder_ALBUM_ORDER_ARTIST:         library.AlbumOrderArtist,
+	libraryv1.AlbumOrder_ALBUM_ORDER_RELEASE_DATE:   library.AlbumOrderReleaseDate,
+	libraryv1.AlbumOrder_ALBUM_ORDER_ORIGINAL_DATE:  library.AlbumOrderOriginalDate,
+	libraryv1.AlbumOrder_ALBUM_ORDER_RECENTLY_ADDED: library.AlbumOrderRecentlyAdded,
+}
+
+// albumOrder converts a requested sort order, failing with
+// InvalidArgument on an unrecognized value.
+func albumOrder(field string, pb libraryv1.AlbumOrder) (library.AlbumOrder, error) {
+	order, ok := albumOrders[pb]
+	if !ok {
+		return "", connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("%s: unknown album order %d", field, pb))
+	}
+	return order, nil
+}
+
 // bootlegFilter converts a requested bootleg filter, failing with
 // InvalidArgument on an unrecognized value.
 func bootlegFilter(field string, pb libraryv1.BootlegFilter) (library.BootlegFilter, error) {

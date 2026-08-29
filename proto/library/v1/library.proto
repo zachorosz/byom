@@ -25,6 +25,20 @@ message GetArtistResponse {
   Artist artist = 1;
 }
 
+// AlbumOrder selects the sort order of an album listing. Every
+// ordering breaks ties by album ID, so paging never skips or repeats.
+enum AlbumOrder {
+  // ALBUM_ORDER_UNSPECIFIED sorts by title.
+  ALBUM_ORDER_UNSPECIFIED = 0;
+  ALBUM_ORDER_TITLE = 1;
+  // ALBUM_ORDER_ARTIST sorts by the credited artist's sort name, then
+  // by original release date within each artist.
+  ALBUM_ORDER_ARTIST = 2;
+  ALBUM_ORDER_RELEASE_DATE = 3;
+  ALBUM_ORDER_ORIGINAL_DATE = 4;
+  ALBUM_ORDER_RECENTLY_ADDED = 5;
+}
+
 // BootlegFilter selects how a listing treats bootleg releases.
 enum BootlegFilter {
   // BOOTLEG_FILTER_UNSPECIFIED lists bootlegs alongside everything else.
@@ -47,6 +61,11 @@ message ListAlbumsRequest {
   repeated AlbumType album_types = 5;
 
   BootlegFilter bootlegs = 6;
+
+  AlbumOrder order = 7;
+  // descending reverses the whole ordering, tie breakers included, so
+  // albums with an unknown date lead rather than trail.
+  bool descending = 8;
 }
 
 message ListAlbumsResponse {

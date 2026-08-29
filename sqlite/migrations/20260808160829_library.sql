@@ -30,7 +30,8 @@ CREATE TABLE albums (
 
     group_key               TEXT    NOT NULL,
     version                 TEXT    NOT NULL DEFAULT '',
-    primary_version         INTEGER NOT NULL DEFAULT 0
+    primary_version         INTEGER NOT NULL DEFAULT 0,
+    artist_sort             TEXT    NOT NULL DEFAULT ''
 );
 
 CREATE INDEX idx_albums_group ON albums(group_key);
