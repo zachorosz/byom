@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"context"
 	"io/fs"
 	"testing"
 	"testing/fstest"
@@ -69,6 +70,67 @@ func TestComputeChangeset(t *testing.T) {
 	}
 	if !dirty {
 		t.Errorf("computeChangeset() dirty = false, want true")
+	}
+}
+
+func TestSyncDirForce(t *testing.T) {
+	now := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+	fsys := fstest.MapFS{
+		"a/keep.flac": {Data: []byte("xx"), ModTime: now},
+	}
+	dirID := uuid.Must(uuid.NewV7())
+
+	tests := []struct {
+		name  string
+		force bool
+		want  bool
+	}{
+		{name: "UnchangedDirStaysClean", force: false, want: false},
+		{name: "ForcedUnchangedDirIsQueued", force: true, want: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var got SyncPayload
+			store := newFakeScanStore()
+			store.dirID = func(context.Context, uuid.UUID, string) (uuid.UUID, error) {
+				return dirID, nil
+			}
+			store.knownFiles = func(context.Context, uuid.UUID) (map[string]storage.File, error) {
+				return map[string]storage.File{
+					"keep.flac": {ID: uuid.Must(uuid.NewV7()), Size: 2, ModTime: now},
+				}, nil
+			}
+			store.syncDir = func(_ context.Context, p SyncPayload) (uuid.UUID, error) {
+				got = p
+				return dirID, nil
+			}
+
+			dirtied := 0
+			s := &Scanner{Store: store, OnDirty: func() { dirtied++ }}
+			r := &run{locationID: uuid.Must(uuid.NewV7()), gen: 1, force: tc.force}
+
+			if err := s.syncDir(t.Context(), r, dirWalkResult(t, fsys, "a")); err != nil {
+				t.Fatalf("syncDir() returned unexpected error: %v", err)
+			}
+
+			if got.Dirty != tc.want {
+				t.Errorf("syncDir(force=%v) Dirty = %v, want %v", tc.force, got.Dirty, tc.want)
+			}
+			if len(got.Changed) != 0 {
+				t.Errorf("syncDir(force=%v) Changed = %v, want empty", tc.force, got.Changed)
+			}
+			if len(got.Missing) != 0 {
+				t.Errorf("syncDir(force=%v) Missing = %v, want empty", tc.force, got.Missing)
+			}
+
+			wantDirtied := 0
+			if tc.want {
+				wantDirtied = 1
+			}
+			if dirtied != wantDirtied {
+				t.Errorf("syncDir(force=%v) called OnDirty %d times, want %d", tc.force, dirtied, wantDirtied)
+			}
+		})
 	}
 }
 

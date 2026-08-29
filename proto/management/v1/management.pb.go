@@ -471,8 +471,10 @@ func (*DeleteLocationResponse) Descriptor() ([]byte, []int) {
 }
 
 type ScanLocationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	LocationId    string                 `protobuf:"bytes,1,opt,name=location_id,json=locationId,proto3" json:"location_id,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	LocationId string                 `protobuf:"bytes,1,opt,name=location_id,json=locationId,proto3" json:"location_id,omitempty"`
+	// Queue every synced dir for reparsing, not just the changed ones.
+	Force         bool `protobuf:"varint,2,opt,name=force,proto3" json:"force,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -512,6 +514,13 @@ func (x *ScanLocationRequest) GetLocationId() string {
 		return x.LocationId
 	}
 	return ""
+}
+
+func (x *ScanLocationRequest) GetForce() bool {
+	if x != nil {
+		return x.Force
+	}
+	return false
 }
 
 type ScanLocationResponse struct {
@@ -872,10 +881,11 @@ const file_management_v1_management_proto_rawDesc = "" +
 	"\blocation\x18\x01 \x01(\v2\x17.management.v1.LocationR\blocation\"/\n" +
 	"\x15DeleteLocationRequest\x12\x16\n" +
 	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\"\x18\n" +
-	"\x16DeleteLocationResponse\">\n" +
+	"\x16DeleteLocationResponse\"T\n" +
 	"\x13ScanLocationRequest\x12'\n" +
 	"\vlocation_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"locationId\"?\n" +
+	"locationId\x12\x14\n" +
+	"\x05force\x18\x02 \x01(\bR\x05force\"?\n" +
 	"\x14ScanLocationResponse\x12'\n" +
 	"\x04scan\x18\x01 \x01(\v2\x13.management.v1.ScanR\x04scan\"\x9f\x01\n" +
 	"\x10ListScansRequest\x12\x1b\n" +

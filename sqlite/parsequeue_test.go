@@ -6,7 +6,52 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
+
+	"github.com/zachorosz/byom/scan"
 )
+
+func TestParseQueueStore_DirtyDirsReclaimsResyncedDir(t *testing.T) {
+	ctx := context.Background()
+	db := newTestDB(t)
+	scans := NewScanStore(db)
+	queue := NewParseQueueStore(db)
+
+	locID := uuid.Must(uuid.NewV7())
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO locations (id, uri) VALUES (?, ?)`, locID, "file:///music"); err != nil {
+		t.Fatalf("seed location failed: %v", err)
+	}
+
+	dirID, err := scans.SyncDir(ctx, scan.SyncPayload{
+		LocationID: locID, RelPath: "Album", Generation: 1, Dirty: true,
+	})
+	if err != nil {
+		t.Fatalf("SyncDir() returned unexpected error: %v", err)
+	}
+	claimed, err := queue.DirtyDirs(ctx, 10)
+	if err != nil {
+		t.Fatalf("DirtyDirs() returned unexpected error: %v", err)
+	}
+	if len(claimed) != 1 {
+		t.Fatalf("DirtyDirs() claimed %d dirs, want 1", len(claimed))
+	}
+	if err := queue.ReleaseDir(ctx, dirID, claimed[0].LockedGeneration); err != nil {
+		t.Fatalf("ReleaseDir() returned unexpected error: %v", err)
+	}
+
+	if _, err := scans.SyncDir(ctx, scan.SyncPayload{
+		LocationID: locID, RelPath: "Album", Generation: 2, Dirty: true,
+	}); err != nil {
+		t.Fatalf("SyncDir() returned unexpected error: %v", err)
+	}
+	claimed, err = queue.DirtyDirs(ctx, 10)
+	if err != nil {
+		t.Fatalf("DirtyDirs() returned unexpected error: %v", err)
+	}
+	if len(claimed) != 1 {
+		t.Errorf("DirtyDirs() claimed %d dirs after a dirty re-sync, want 1", len(claimed))
+	}
+}
 
 func TestParseQueueStore_DirFilesOrdersByName(t *testing.T) {
 	ctx := context.Background()

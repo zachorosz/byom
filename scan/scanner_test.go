@@ -131,6 +131,10 @@ type fakeScanStore struct {
 	syncDir  func(context.Context, SyncPayload) (uuid.UUID, error)
 	sweep    func(context.Context, uuid.UUID, int64) (int64, int64, error)
 	swept    bool
+	// dirID and knownFiles, when non-nil, stand in for a dir the store
+	// has already seen.
+	dirID      func(context.Context, uuid.UUID, string) (uuid.UUID, error)
+	knownFiles func(context.Context, uuid.UUID) (map[string]storage.File, error)
 }
 
 func newFakeScanStore() *fakeScanStore {
@@ -177,11 +181,17 @@ func (f *fakeScanStore) FinishScan(ctx context.Context, scanID uuid.UUID, progre
 	return nil
 }
 
-func (f *fakeScanStore) DirID(context.Context, uuid.UUID, string) (uuid.UUID, error) {
+func (f *fakeScanStore) DirID(ctx context.Context, locationID uuid.UUID, relpath string) (uuid.UUID, error) {
+	if f.dirID != nil {
+		return f.dirID(ctx, locationID, relpath)
+	}
 	return uuid.Nil, storage.ErrNotExists
 }
 
-func (f *fakeScanStore) KnownFiles(context.Context, uuid.UUID) (map[string]storage.File, error) {
+func (f *fakeScanStore) KnownFiles(ctx context.Context, dirID uuid.UUID) (map[string]storage.File, error) {
+	if f.knownFiles != nil {
+		return f.knownFiles(ctx, dirID)
+	}
 	return map[string]storage.File{}, nil
 }
 
@@ -308,11 +318,11 @@ func TestScannerStartRejectsSecondScanOfSameLocation(t *testing.T) {
 		s.Shutdown(ctx)
 	})
 
-	if _, err := s.Start(ctx, locationID); err != nil {
+	if _, err := s.Start(ctx, locationID, false); err != nil {
 		t.Fatalf("Start() returned an unexpected error: %v", err)
 	}
 
-	_, err := s.Start(ctx, locationID)
+	_, err := s.Start(ctx, locationID, false)
 	if !errors.Is(err, ErrScanRunning) {
 		t.Errorf("Start() second call error = %v, want ErrScanRunning", err)
 	}
@@ -326,7 +336,7 @@ func TestScannerCancel(t *testing.T) {
 	store.finishGate = make(chan struct{})
 	s, locationID := newScannerWithTestLibrary(t, store)
 
-	started, err := s.Start(ctx, locationID)
+	started, err := s.Start(ctx, locationID, false)
 	if err != nil {
 		t.Fatalf("Start() returned an unexpected error: %v", err)
 	}
@@ -374,7 +384,7 @@ func TestScannerScansFiltersCancellingState(t *testing.T) {
 		s.Shutdown(ctx)
 	})
 
-	started, err := s.Start(ctx, locationID)
+	started, err := s.Start(ctx, locationID, false)
 	if err != nil {
 		t.Fatalf("Start() returned an unexpected error: %v", err)
 	}
@@ -398,7 +408,7 @@ func TestScannerCancelFinishedScan(t *testing.T) {
 	ctx := context.Background()
 	s, locationID := newScannerWithTestLibrary(t, newFakeScanStore())
 
-	started, err := s.Start(ctx, locationID)
+	started, err := s.Start(ctx, locationID, false)
 	if err != nil {
 		t.Fatalf("Start() returned an unexpected error: %v", err)
 	}
@@ -429,7 +439,7 @@ func TestScannerReportsProgress(t *testing.T) {
 	}
 	s, locationID := newScannerWithTestLibrary(t, store)
 
-	started, err := s.Start(ctx, locationID)
+	started, err := s.Start(ctx, locationID, false)
 	if err != nil {
 		t.Fatalf("Start() returned an unexpected error: %v", err)
 	}

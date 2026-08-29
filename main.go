@@ -11,14 +11,11 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/zachorosz/byom/images"
 	"github.com/zachorosz/byom/metadata"
 	"github.com/zachorosz/byom/rpc"
 	"github.com/zachorosz/byom/scan"
 	"github.com/zachorosz/byom/sqlite"
-	"github.com/zachorosz/byom/storage"
 )
 
 var (
@@ -36,21 +33,6 @@ func main() {
 
 	db := mustSetupDB(ctx, "tmp/byom.db", logger)
 	defer db.Close()
-
-	loc := storage.Location{
-		ID:        uuid.Must(uuid.NewV7()),
-		URI:       "file:///mnt/music/Library",
-		Available: true,
-	}
-
-	if err := db.QueryRowContext(ctx,
-		`INSERT INTO locations (id, uri) VALUES (?, ?)
-		 ON CONFLICT DO UPDATE SET uri=excluded.uri
-		 RETURNING id`,
-		loc.ID, loc.URI).Scan(&loc.ID); err != nil {
-		logger.Error("seed location failed", slog.Any("error", err))
-		os.Exit(1)
-	}
 
 	scanStore := sqlite.NewScanStore(db)
 	parseQueueStore := sqlite.NewParseQueueStore(db)
@@ -101,10 +83,6 @@ func main() {
 		logger.Info("rpc server listening", slog.String("addr", *addr))
 		serveErr <- srv.ListenAndServe()
 	}()
-
-	if _, err := scanner.Start(ctx, loc.ID); err != nil {
-		logger.Error("start scan failed", slog.Any("error", err), slog.String("location_id", loc.ID.String()))
-	}
 
 	select {
 	case <-ctx.Done():

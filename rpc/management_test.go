@@ -33,10 +33,12 @@ type fakeScanner struct {
 	gotState      scan.State
 	gotToken      string
 	gotLimit      int
+	gotForce      bool
 }
 
-func (f *fakeScanner) Start(_ context.Context, locationID uuid.UUID) (scan.Scan, error) {
+func (f *fakeScanner) Start(_ context.Context, locationID uuid.UUID, force bool) (scan.Scan, error) {
 	f.gotLocationID = locationID
+	f.gotForce = force
 	return f.scan, f.err
 }
 
@@ -135,6 +137,26 @@ func TestManagementServer_ScanLocation(t *testing.T) {
 	}
 	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 		t.Errorf("ScanLocation() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestManagementServer_ScanLocation_Force(t *testing.T) {
+	locationID := uuid.Must(uuid.NewV7())
+
+	for _, force := range []bool{false, true} {
+		scanner := &fakeScanner{}
+		client := newTestManagementClient(t, scanner, &fakeLocations{})
+
+		req := &managementv1.ScanLocationRequest{
+			LocationId: locationID.String(),
+			Force:      force,
+		}
+		if _, err := client.ScanLocation(context.Background(), req); err != nil {
+			t.Fatalf("ScanLocation(force=%v) returned an unexpected error: %v", force, err)
+		}
+		if scanner.gotForce != force {
+			t.Errorf("ScanLocation(force=%v) called Start with force = %v", force, scanner.gotForce)
+		}
 	}
 }
 

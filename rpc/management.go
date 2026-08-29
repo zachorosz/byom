@@ -14,7 +14,7 @@ import (
 )
 
 type Scanner interface {
-	Start(ctx context.Context, locationID uuid.UUID) (scan.Scan, error)
+	Start(ctx context.Context, locationID uuid.UUID, force bool) (scan.Scan, error)
 	Cancel(ctx context.Context, scanID uuid.UUID) error
 	Scan(ctx context.Context, id uuid.UUID) (scan.Scan, error)
 	Scans(ctx context.Context, locationID uuid.UUID, state scan.State, token string, limit int) ([]scan.Scan, string, error)
@@ -127,7 +127,7 @@ func (s *ManagementServer) ScanLocation(ctx context.Context, req *managementv1.S
 		return nil, err
 	}
 
-	sc, err := s.scans.Start(ctx, locationID)
+	sc, err := s.scans.Start(ctx, locationID, req.GetForce())
 	if err != nil {
 		return nil, rpcError(err)
 	}
