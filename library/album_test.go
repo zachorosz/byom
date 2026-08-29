@@ -140,3 +140,80 @@ func TestAlbumGroupKey_Matching(t *testing.T) {
 		})
 	}
 }
+
+func TestAlbumQuery_Equal(t *testing.T) {
+	artistA := uuid.Must(uuid.NewV7())
+	artistB := uuid.Must(uuid.NewV7())
+
+	tests := []struct {
+		name string
+		a    AlbumQuery
+		b    AlbumQuery
+		want bool
+	}{
+		{
+			name: "zeroValues",
+			a:    AlbumQuery{},
+			b:    AlbumQuery{},
+			want: true,
+		},
+		{
+			name: "sameEveryField",
+			a:    AlbumQuery{ArtistID: artistA, IncludeAllVersions: true, Types: []AlbumType{AlbumMain, AlbumEP}, Bootlegs: BootlegsOnly},
+			b:    AlbumQuery{ArtistID: artistA, IncludeAllVersions: true, Types: []AlbumType{AlbumMain, AlbumEP}, Bootlegs: BootlegsOnly},
+			want: true,
+		},
+		{
+			name: "differentArtist",
+			a:    AlbumQuery{ArtistID: artistA},
+			b:    AlbumQuery{ArtistID: artistB},
+			want: false,
+		},
+		{
+			name: "differentVersions",
+			a:    AlbumQuery{IncludeAllVersions: true},
+			b:    AlbumQuery{},
+			want: false,
+		},
+		{
+			name: "differentBootlegs",
+			a:    AlbumQuery{Bootlegs: BootlegsExclude},
+			b:    AlbumQuery{Bootlegs: BootlegsOnly},
+			want: false,
+		},
+		{
+			name: "differentTypes",
+			a:    AlbumQuery{Types: []AlbumType{AlbumMain}},
+			b:    AlbumQuery{Types: []AlbumType{AlbumSingle}},
+			want: false,
+		},
+		{
+			name: "extraType",
+			a:    AlbumQuery{Types: []AlbumType{AlbumMain}},
+			b:    AlbumQuery{Types: []AlbumType{AlbumMain, AlbumEP}},
+			want: false,
+		},
+		{
+			name: "noTypesVersusSomeTypes",
+			a:    AlbumQuery{},
+			b:    AlbumQuery{Types: []AlbumType{AlbumMain}},
+			want: false,
+		},
+		{
+			// Equal is strict: callers normalize before comparing, so a
+			// reordered list is a different filter here.
+			name: "reorderedTypes",
+			a:    AlbumQuery{Types: []AlbumType{AlbumMain, AlbumEP}},
+			b:    AlbumQuery{Types: []AlbumType{AlbumEP, AlbumMain}},
+			want: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.a.Equal(tc.b); got != tc.want {
+				t.Errorf("AlbumQuery.Equal(%+v, %+v) = %v, want %v", tc.a, tc.b, got, tc.want)
+			}
+		})
+	}
+}

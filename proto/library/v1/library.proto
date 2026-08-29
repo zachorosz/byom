@@ -25,15 +25,63 @@ message GetArtistResponse {
   Artist artist = 1;
 }
 
+// AlbumOrder selects the sort order of an album listing. Every
+// ordering breaks ties by album ID, so paging never skips or repeats.
+enum AlbumOrder {
+  // ALBUM_ORDER_UNSPECIFIED sorts by title.
+  ALBUM_ORDER_UNSPECIFIED = 0;
+  ALBUM_ORDER_TITLE = 1;
+  // ALBUM_ORDER_ARTIST sorts by the credited artist's sort name, then
+  // by original release date within each artist.
+  ALBUM_ORDER_ARTIST = 2;
+  ALBUM_ORDER_RELEASE_DATE = 3;
+  ALBUM_ORDER_ORIGINAL_DATE = 4;
+  ALBUM_ORDER_RECENTLY_ADDED = 5;
+}
+
+// BootlegFilter selects how a listing treats bootleg releases.
+enum BootlegFilter {
+  // BOOTLEG_FILTER_UNSPECIFIED lists bootlegs alongside everything else.
+  BOOTLEG_FILTER_UNSPECIFIED = 0;
+  BOOTLEG_FILTER_EXCLUDE = 1;
+  BOOTLEG_FILTER_ONLY = 2;
+}
+
 message ListAlbumsRequest {
   int32 page_size = 1;
   string page_token = 2;
   string artist_id = 3;
+
+  // include_all_versions lists a release's alternate versions
+  // alongside its primary rather than the primary alone.
+  bool include_all_versions = 4;
+
+  // album_types restricts the listing to the given release types. An
+  // empty list matches every type.
+  repeated AlbumType album_types = 5;
+
+  BootlegFilter bootlegs = 6;
+
+  AlbumOrder order = 7;
+  // descending reverses the whole ordering, tie breakers included, so
+  // albums with an unknown date lead rather than trail.
+  bool descending = 8;
 }
 
 message ListAlbumsResponse {
   repeated Album items = 1;
   string next_page_token = 2;
+}
+
+message ListAlbumVersionsRequest {
+  string album_id = 1 [(buf.validate.field).required = true];
+}
+
+// ListAlbumVersionsResponse holds every version of one release,
+// including the album that was asked for. Version groups are small, so
+// the whole group is returned unpaginated.
+message ListAlbumVersionsResponse {
+  repeated Album items = 1;
 }
 
 message GetAlbumRequest {
@@ -68,6 +116,7 @@ service LibraryService {
   rpc GetArtist(GetArtistRequest) returns (GetArtistResponse) {}
   rpc ListAlbums(ListAlbumsRequest) returns (ListAlbumsResponse) {}
   rpc GetAlbum(GetAlbumRequest) returns (GetAlbumResponse) {}
+  rpc ListAlbumVersions(ListAlbumVersionsRequest) returns (ListAlbumVersionsResponse) {}
   rpc ListTracks(ListTracksRequest) returns (ListTracksResponse) {}
   rpc GetTrack(GetTrackRequest) returns (GetTrackResponse) {}
 }

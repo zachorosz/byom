@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -272,6 +271,15 @@ func (s *ScanStore) Scan(ctx context.Context, id uuid.UUID) (scan.Scan, error) {
 	return scanScan(row.Scan)
 }
 
+type scanCursor struct {
+	LocationID uuid.UUID  `json:"location_id"`
+	State      scan.State `json:"state"`
+	// StartTime is a Unix nanosecond timestamp, matching the column's
+	// keyset ordering.
+	StartTime int64     `json:"start_time"`
+	ID        uuid.UUID `json:"id"`
+}
+
 func (s *ScanStore) Scans(ctx context.Context, locationID uuid.UUID, state scan.State, token string, limit int) ([]scan.Scan, string, error) {
 	limit = page.Size(limit)
 	q := `SELECT id, location_id, state, start_time, finish_time, error, dirs_seen, dirs_missing, files_seen, files_missing FROM scans`
@@ -287,17 +295,16 @@ func (s *ScanStore) Scans(ctx context.Context, locationID uuid.UUID, state scan.
 		args = append(args, string(state))
 	}
 	if token != "" {
-		cur, err := page.DecodeToken(token, 2)
-		if err != nil {
+		var cur scanCursor
+		if err := page.Decode(token, &cur); err != nil {
 			return nil, "", err
 		}
-		startTime, err := strconv.ParseInt(cur[0], 10, 64)
-		if err != nil {
-			return nil, "", fmt.Errorf("%w: invalid scan start time", page.ErrInvalidToken)
+		if cur.LocationID != locationID || cur.State != state {
+			return nil, "", fmt.Errorf("%w: filter changed mid-listing", page.ErrInvalidToken)
 		}
 		conditions = append(conditions, "(start_time < ? OR (start_time = ? AND id > ?))")
-		cursor := time.Unix(0, startTime).UTC()
-		args = append(args, cursor, cursor, cur[1])
+		startTime := time.Unix(0, cur.StartTime).UTC()
+		args = append(args, startTime, startTime, cur.ID)
 	}
 
 	if len(conditions) > 0 {
@@ -329,8 +336,16 @@ func (s *ScanStore) Scans(ctx context.Context, locationID uuid.UUID, state scan.
 	}
 	scans = scans[:limit]
 	last := scans[limit-1]
-	return scans, page.EncodeToken(
-		strconv.FormatInt(last.StartTime.UnixNano(), 10), last.ID.String()), nil
+	next, err := page.Encode(scanCursor{
+		LocationID: locationID,
+		State:      state,
+		StartTime:  last.StartTime.UnixNano(),
+		ID:         last.ID,
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	return scans, next, nil
 }
 
 func (s *ScanStore) Sweep(ctx context.Context, locationID uuid.UUID, gen int64) (int64, int64, error) {

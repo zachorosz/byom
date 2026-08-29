@@ -4,14 +4,16 @@ import { createMemo, Loading, Show } from 'solid-js';
 
 import ReleaseHeader from '../../features/library/ReleaseHeader';
 import TrackList from '../../features/library/TrackList';
+import VersionList from '../../features/library/VersionList';
 import { formatDuration, sumDurations } from '../../lib/format';
-import { getAlbum, listTracks } from '../../lib/rpc/library';
+import { getAlbum, listAlbumVersions, listTracks } from '../../lib/rpc/library';
 
-// Starts both fetches as soon as navigation begins, before the page renders.
+// Starts every fetch as soon as navigation begins, before the page renders.
 export const route = {
   preload: ({ params }) => {
     void getAlbum(params.id!);
     void listTracks(params.id!);
+    void listAlbumVersions(params.id!);
   },
 } satisfies RouteDefinition;
 
@@ -20,6 +22,7 @@ export default function AlbumDetail(props: RouteProps<'/albums/:id'>) {
   // directly yields undefined and the page renders empty forever.
   const album = createMemo(async () => (await getAlbum(props.params.id)).album);
   const tracks = createMemo(async () => (await listTracks(props.params.id)).items);
+  const versions = createMemo(async () => (await listAlbumVersions(props.params.id)).items);
 
   return (
     <main class="px-6 py-8">
@@ -28,6 +31,11 @@ export default function AlbumDetail(props: RouteProps<'/albums/:id'>) {
           <>
             <Title>{`${a().title} - byom`}</Title>
             <ReleaseHeader album={a()} />
+            {/* Renders nothing until the group arrives, and nothing at all for
+                a release with no alternate versions. */}
+            <Loading fallback={null}>
+              <VersionList versions={versions()} currentId={props.params.id} />
+            </Loading>
             {/* Its own boundary: the header depends only on GetAlbum, so a slow
                 ListTracks must not hold the whole page on the shell fallback. */}
             <Loading

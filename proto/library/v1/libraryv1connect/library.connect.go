@@ -44,6 +44,9 @@ const (
 	LibraryServiceListAlbumsProcedure = "/library.v1.LibraryService/ListAlbums"
 	// LibraryServiceGetAlbumProcedure is the fully-qualified name of the LibraryService's GetAlbum RPC.
 	LibraryServiceGetAlbumProcedure = "/library.v1.LibraryService/GetAlbum"
+	// LibraryServiceListAlbumVersionsProcedure is the fully-qualified name of the LibraryService's
+	// ListAlbumVersions RPC.
+	LibraryServiceListAlbumVersionsProcedure = "/library.v1.LibraryService/ListAlbumVersions"
 	// LibraryServiceListTracksProcedure is the fully-qualified name of the LibraryService's ListTracks
 	// RPC.
 	LibraryServiceListTracksProcedure = "/library.v1.LibraryService/ListTracks"
@@ -57,6 +60,7 @@ type LibraryServiceClient interface {
 	GetArtist(context.Context, *v1.GetArtistRequest) (*v1.GetArtistResponse, error)
 	ListAlbums(context.Context, *v1.ListAlbumsRequest) (*v1.ListAlbumsResponse, error)
 	GetAlbum(context.Context, *v1.GetAlbumRequest) (*v1.GetAlbumResponse, error)
+	ListAlbumVersions(context.Context, *v1.ListAlbumVersionsRequest) (*v1.ListAlbumVersionsResponse, error)
 	ListTracks(context.Context, *v1.ListTracksRequest) (*v1.ListTracksResponse, error)
 	GetTrack(context.Context, *v1.GetTrackRequest) (*v1.GetTrackResponse, error)
 }
@@ -96,6 +100,12 @@ func NewLibraryServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(libraryServiceMethods.ByName("GetAlbum")),
 			connect.WithClientOptions(opts...),
 		),
+		listAlbumVersions: connect.NewClient[v1.ListAlbumVersionsRequest, v1.ListAlbumVersionsResponse](
+			httpClient,
+			baseURL+LibraryServiceListAlbumVersionsProcedure,
+			connect.WithSchema(libraryServiceMethods.ByName("ListAlbumVersions")),
+			connect.WithClientOptions(opts...),
+		),
 		listTracks: connect.NewClient[v1.ListTracksRequest, v1.ListTracksResponse](
 			httpClient,
 			baseURL+LibraryServiceListTracksProcedure,
@@ -113,12 +123,13 @@ func NewLibraryServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // libraryServiceClient implements LibraryServiceClient.
 type libraryServiceClient struct {
-	listArtists *connect.Client[v1.ListArtistsRequest, v1.ListArtistsResponse]
-	getArtist   *connect.Client[v1.GetArtistRequest, v1.GetArtistResponse]
-	listAlbums  *connect.Client[v1.ListAlbumsRequest, v1.ListAlbumsResponse]
-	getAlbum    *connect.Client[v1.GetAlbumRequest, v1.GetAlbumResponse]
-	listTracks  *connect.Client[v1.ListTracksRequest, v1.ListTracksResponse]
-	getTrack    *connect.Client[v1.GetTrackRequest, v1.GetTrackResponse]
+	listArtists       *connect.Client[v1.ListArtistsRequest, v1.ListArtistsResponse]
+	getArtist         *connect.Client[v1.GetArtistRequest, v1.GetArtistResponse]
+	listAlbums        *connect.Client[v1.ListAlbumsRequest, v1.ListAlbumsResponse]
+	getAlbum          *connect.Client[v1.GetAlbumRequest, v1.GetAlbumResponse]
+	listAlbumVersions *connect.Client[v1.ListAlbumVersionsRequest, v1.ListAlbumVersionsResponse]
+	listTracks        *connect.Client[v1.ListTracksRequest, v1.ListTracksResponse]
+	getTrack          *connect.Client[v1.GetTrackRequest, v1.GetTrackResponse]
 }
 
 // ListArtists calls library.v1.LibraryService.ListArtists.
@@ -157,6 +168,15 @@ func (c *libraryServiceClient) GetAlbum(ctx context.Context, req *v1.GetAlbumReq
 	return nil, err
 }
 
+// ListAlbumVersions calls library.v1.LibraryService.ListAlbumVersions.
+func (c *libraryServiceClient) ListAlbumVersions(ctx context.Context, req *v1.ListAlbumVersionsRequest) (*v1.ListAlbumVersionsResponse, error) {
+	response, err := c.listAlbumVersions.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListTracks calls library.v1.LibraryService.ListTracks.
 func (c *libraryServiceClient) ListTracks(ctx context.Context, req *v1.ListTracksRequest) (*v1.ListTracksResponse, error) {
 	response, err := c.listTracks.CallUnary(ctx, connect.NewRequest(req))
@@ -181,6 +201,7 @@ type LibraryServiceHandler interface {
 	GetArtist(context.Context, *v1.GetArtistRequest) (*v1.GetArtistResponse, error)
 	ListAlbums(context.Context, *v1.ListAlbumsRequest) (*v1.ListAlbumsResponse, error)
 	GetAlbum(context.Context, *v1.GetAlbumRequest) (*v1.GetAlbumResponse, error)
+	ListAlbumVersions(context.Context, *v1.ListAlbumVersionsRequest) (*v1.ListAlbumVersionsResponse, error)
 	ListTracks(context.Context, *v1.ListTracksRequest) (*v1.ListTracksResponse, error)
 	GetTrack(context.Context, *v1.GetTrackRequest) (*v1.GetTrackResponse, error)
 }
@@ -216,6 +237,12 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 		connect.WithSchema(libraryServiceMethods.ByName("GetAlbum")),
 		connect.WithHandlerOptions(opts...),
 	)
+	libraryServiceListAlbumVersionsHandler := connect.NewUnaryHandlerSimple(
+		LibraryServiceListAlbumVersionsProcedure,
+		svc.ListAlbumVersions,
+		connect.WithSchema(libraryServiceMethods.ByName("ListAlbumVersions")),
+		connect.WithHandlerOptions(opts...),
+	)
 	libraryServiceListTracksHandler := connect.NewUnaryHandlerSimple(
 		LibraryServiceListTracksProcedure,
 		svc.ListTracks,
@@ -238,6 +265,8 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 			libraryServiceListAlbumsHandler.ServeHTTP(w, r)
 		case LibraryServiceGetAlbumProcedure:
 			libraryServiceGetAlbumHandler.ServeHTTP(w, r)
+		case LibraryServiceListAlbumVersionsProcedure:
+			libraryServiceListAlbumVersionsHandler.ServeHTTP(w, r)
 		case LibraryServiceListTracksProcedure:
 			libraryServiceListTracksHandler.ServeHTTP(w, r)
 		case LibraryServiceGetTrackProcedure:
@@ -265,6 +294,10 @@ func (UnimplementedLibraryServiceHandler) ListAlbums(context.Context, *v1.ListAl
 
 func (UnimplementedLibraryServiceHandler) GetAlbum(context.Context, *v1.GetAlbumRequest) (*v1.GetAlbumResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("library.v1.LibraryService.GetAlbum is not implemented"))
+}
+
+func (UnimplementedLibraryServiceHandler) ListAlbumVersions(context.Context, *v1.ListAlbumVersionsRequest) (*v1.ListAlbumVersionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("library.v1.LibraryService.ListAlbumVersions is not implemented"))
 }
 
 func (UnimplementedLibraryServiceHandler) ListTracks(context.Context, *v1.ListTracksRequest) (*v1.ListTracksResponse, error) {

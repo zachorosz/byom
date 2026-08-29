@@ -22,6 +22,120 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// AlbumOrder selects the sort order of an album listing. Every
+// ordering breaks ties by album ID, so paging never skips or repeats.
+type AlbumOrder int32
+
+const (
+	// ALBUM_ORDER_UNSPECIFIED sorts by title.
+	AlbumOrder_ALBUM_ORDER_UNSPECIFIED AlbumOrder = 0
+	AlbumOrder_ALBUM_ORDER_TITLE       AlbumOrder = 1
+	// ALBUM_ORDER_ARTIST sorts by the credited artist's sort name, then
+	// by original release date within each artist.
+	AlbumOrder_ALBUM_ORDER_ARTIST         AlbumOrder = 2
+	AlbumOrder_ALBUM_ORDER_RELEASE_DATE   AlbumOrder = 3
+	AlbumOrder_ALBUM_ORDER_ORIGINAL_DATE  AlbumOrder = 4
+	AlbumOrder_ALBUM_ORDER_RECENTLY_ADDED AlbumOrder = 5
+)
+
+// Enum value maps for AlbumOrder.
+var (
+	AlbumOrder_name = map[int32]string{
+		0: "ALBUM_ORDER_UNSPECIFIED",
+		1: "ALBUM_ORDER_TITLE",
+		2: "ALBUM_ORDER_ARTIST",
+		3: "ALBUM_ORDER_RELEASE_DATE",
+		4: "ALBUM_ORDER_ORIGINAL_DATE",
+		5: "ALBUM_ORDER_RECENTLY_ADDED",
+	}
+	AlbumOrder_value = map[string]int32{
+		"ALBUM_ORDER_UNSPECIFIED":    0,
+		"ALBUM_ORDER_TITLE":          1,
+		"ALBUM_ORDER_ARTIST":         2,
+		"ALBUM_ORDER_RELEASE_DATE":   3,
+		"ALBUM_ORDER_ORIGINAL_DATE":  4,
+		"ALBUM_ORDER_RECENTLY_ADDED": 5,
+	}
+)
+
+func (x AlbumOrder) Enum() *AlbumOrder {
+	p := new(AlbumOrder)
+	*p = x
+	return p
+}
+
+func (x AlbumOrder) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AlbumOrder) Descriptor() protoreflect.EnumDescriptor {
+	return file_library_v1_library_proto_enumTypes[0].Descriptor()
+}
+
+func (AlbumOrder) Type() protoreflect.EnumType {
+	return &file_library_v1_library_proto_enumTypes[0]
+}
+
+func (x AlbumOrder) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AlbumOrder.Descriptor instead.
+func (AlbumOrder) EnumDescriptor() ([]byte, []int) {
+	return file_library_v1_library_proto_rawDescGZIP(), []int{0}
+}
+
+// BootlegFilter selects how a listing treats bootleg releases.
+type BootlegFilter int32
+
+const (
+	// BOOTLEG_FILTER_UNSPECIFIED lists bootlegs alongside everything else.
+	BootlegFilter_BOOTLEG_FILTER_UNSPECIFIED BootlegFilter = 0
+	BootlegFilter_BOOTLEG_FILTER_EXCLUDE     BootlegFilter = 1
+	BootlegFilter_BOOTLEG_FILTER_ONLY        BootlegFilter = 2
+)
+
+// Enum value maps for BootlegFilter.
+var (
+	BootlegFilter_name = map[int32]string{
+		0: "BOOTLEG_FILTER_UNSPECIFIED",
+		1: "BOOTLEG_FILTER_EXCLUDE",
+		2: "BOOTLEG_FILTER_ONLY",
+	}
+	BootlegFilter_value = map[string]int32{
+		"BOOTLEG_FILTER_UNSPECIFIED": 0,
+		"BOOTLEG_FILTER_EXCLUDE":     1,
+		"BOOTLEG_FILTER_ONLY":        2,
+	}
+)
+
+func (x BootlegFilter) Enum() *BootlegFilter {
+	p := new(BootlegFilter)
+	*p = x
+	return p
+}
+
+func (x BootlegFilter) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BootlegFilter) Descriptor() protoreflect.EnumDescriptor {
+	return file_library_v1_library_proto_enumTypes[1].Descriptor()
+}
+
+func (BootlegFilter) Type() protoreflect.EnumType {
+	return &file_library_v1_library_proto_enumTypes[1]
+}
+
+func (x BootlegFilter) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BootlegFilter.Descriptor instead.
+func (BootlegFilter) EnumDescriptor() ([]byte, []int) {
+	return file_library_v1_library_proto_rawDescGZIP(), []int{1}
+}
+
 type ListArtistsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
@@ -215,10 +329,21 @@ func (x *GetArtistResponse) GetArtist() *Artist {
 }
 
 type ListAlbumsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	ArtistId      string                 `protobuf:"bytes,3,opt,name=artist_id,json=artistId,proto3" json:"artist_id,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	PageSize  int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	ArtistId  string                 `protobuf:"bytes,3,opt,name=artist_id,json=artistId,proto3" json:"artist_id,omitempty"`
+	// include_all_versions lists a release's alternate versions
+	// alongside its primary rather than the primary alone.
+	IncludeAllVersions bool `protobuf:"varint,4,opt,name=include_all_versions,json=includeAllVersions,proto3" json:"include_all_versions,omitempty"`
+	// album_types restricts the listing to the given release types. An
+	// empty list matches every type.
+	AlbumTypes []AlbumType   `protobuf:"varint,5,rep,packed,name=album_types,json=albumTypes,proto3,enum=library.v1.AlbumType" json:"album_types,omitempty"`
+	Bootlegs   BootlegFilter `protobuf:"varint,6,opt,name=bootlegs,proto3,enum=library.v1.BootlegFilter" json:"bootlegs,omitempty"`
+	Order      AlbumOrder    `protobuf:"varint,7,opt,name=order,proto3,enum=library.v1.AlbumOrder" json:"order,omitempty"`
+	// descending reverses the whole ordering, tie breakers included, so
+	// albums with an unknown date lead rather than trail.
+	Descending    bool `protobuf:"varint,8,opt,name=descending,proto3" json:"descending,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -274,6 +399,41 @@ func (x *ListAlbumsRequest) GetArtistId() string {
 	return ""
 }
 
+func (x *ListAlbumsRequest) GetIncludeAllVersions() bool {
+	if x != nil {
+		return x.IncludeAllVersions
+	}
+	return false
+}
+
+func (x *ListAlbumsRequest) GetAlbumTypes() []AlbumType {
+	if x != nil {
+		return x.AlbumTypes
+	}
+	return nil
+}
+
+func (x *ListAlbumsRequest) GetBootlegs() BootlegFilter {
+	if x != nil {
+		return x.Bootlegs
+	}
+	return BootlegFilter_BOOTLEG_FILTER_UNSPECIFIED
+}
+
+func (x *ListAlbumsRequest) GetOrder() AlbumOrder {
+	if x != nil {
+		return x.Order
+	}
+	return AlbumOrder_ALBUM_ORDER_UNSPECIFIED
+}
+
+func (x *ListAlbumsRequest) GetDescending() bool {
+	if x != nil {
+		return x.Descending
+	}
+	return false
+}
+
 type ListAlbumsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Items         []*Album               `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
@@ -326,6 +486,97 @@ func (x *ListAlbumsResponse) GetNextPageToken() string {
 	return ""
 }
 
+type ListAlbumVersionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AlbumId       string                 `protobuf:"bytes,1,opt,name=album_id,json=albumId,proto3" json:"album_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAlbumVersionsRequest) Reset() {
+	*x = ListAlbumVersionsRequest{}
+	mi := &file_library_v1_library_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAlbumVersionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAlbumVersionsRequest) ProtoMessage() {}
+
+func (x *ListAlbumVersionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_library_v1_library_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAlbumVersionsRequest.ProtoReflect.Descriptor instead.
+func (*ListAlbumVersionsRequest) Descriptor() ([]byte, []int) {
+	return file_library_v1_library_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListAlbumVersionsRequest) GetAlbumId() string {
+	if x != nil {
+		return x.AlbumId
+	}
+	return ""
+}
+
+// ListAlbumVersionsResponse holds every version of one release,
+// including the album that was asked for. Version groups are small, so
+// the whole group is returned unpaginated.
+type ListAlbumVersionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*Album               `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAlbumVersionsResponse) Reset() {
+	*x = ListAlbumVersionsResponse{}
+	mi := &file_library_v1_library_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAlbumVersionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAlbumVersionsResponse) ProtoMessage() {}
+
+func (x *ListAlbumVersionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_library_v1_library_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAlbumVersionsResponse.ProtoReflect.Descriptor instead.
+func (*ListAlbumVersionsResponse) Descriptor() ([]byte, []int) {
+	return file_library_v1_library_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListAlbumVersionsResponse) GetItems() []*Album {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
 type GetAlbumRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -335,7 +586,7 @@ type GetAlbumRequest struct {
 
 func (x *GetAlbumRequest) Reset() {
 	*x = GetAlbumRequest{}
-	mi := &file_library_v1_library_proto_msgTypes[6]
+	mi := &file_library_v1_library_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -347,7 +598,7 @@ func (x *GetAlbumRequest) String() string {
 func (*GetAlbumRequest) ProtoMessage() {}
 
 func (x *GetAlbumRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[6]
+	mi := &file_library_v1_library_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -360,7 +611,7 @@ func (x *GetAlbumRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAlbumRequest.ProtoReflect.Descriptor instead.
 func (*GetAlbumRequest) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{6}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetAlbumRequest) GetId() string {
@@ -379,7 +630,7 @@ type GetAlbumResponse struct {
 
 func (x *GetAlbumResponse) Reset() {
 	*x = GetAlbumResponse{}
-	mi := &file_library_v1_library_proto_msgTypes[7]
+	mi := &file_library_v1_library_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -391,7 +642,7 @@ func (x *GetAlbumResponse) String() string {
 func (*GetAlbumResponse) ProtoMessage() {}
 
 func (x *GetAlbumResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[7]
+	mi := &file_library_v1_library_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -404,7 +655,7 @@ func (x *GetAlbumResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAlbumResponse.ProtoReflect.Descriptor instead.
 func (*GetAlbumResponse) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{7}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetAlbumResponse) GetAlbum() *Album {
@@ -425,7 +676,7 @@ type ListTracksRequest struct {
 
 func (x *ListTracksRequest) Reset() {
 	*x = ListTracksRequest{}
-	mi := &file_library_v1_library_proto_msgTypes[8]
+	mi := &file_library_v1_library_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -437,7 +688,7 @@ func (x *ListTracksRequest) String() string {
 func (*ListTracksRequest) ProtoMessage() {}
 
 func (x *ListTracksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[8]
+	mi := &file_library_v1_library_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -450,7 +701,7 @@ func (x *ListTracksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTracksRequest.ProtoReflect.Descriptor instead.
 func (*ListTracksRequest) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{8}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListTracksRequest) GetPageSize() int32 {
@@ -484,7 +735,7 @@ type ListTracksResponse struct {
 
 func (x *ListTracksResponse) Reset() {
 	*x = ListTracksResponse{}
-	mi := &file_library_v1_library_proto_msgTypes[9]
+	mi := &file_library_v1_library_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -496,7 +747,7 @@ func (x *ListTracksResponse) String() string {
 func (*ListTracksResponse) ProtoMessage() {}
 
 func (x *ListTracksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[9]
+	mi := &file_library_v1_library_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -509,7 +760,7 @@ func (x *ListTracksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTracksResponse.ProtoReflect.Descriptor instead.
 func (*ListTracksResponse) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{9}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListTracksResponse) GetItems() []*Track {
@@ -535,7 +786,7 @@ type GetTrackRequest struct {
 
 func (x *GetTrackRequest) Reset() {
 	*x = GetTrackRequest{}
-	mi := &file_library_v1_library_proto_msgTypes[10]
+	mi := &file_library_v1_library_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -547,7 +798,7 @@ func (x *GetTrackRequest) String() string {
 func (*GetTrackRequest) ProtoMessage() {}
 
 func (x *GetTrackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[10]
+	mi := &file_library_v1_library_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -560,7 +811,7 @@ func (x *GetTrackRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTrackRequest.ProtoReflect.Descriptor instead.
 func (*GetTrackRequest) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{10}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetTrackRequest) GetId() string {
@@ -579,7 +830,7 @@ type GetTrackResponse struct {
 
 func (x *GetTrackResponse) Reset() {
 	*x = GetTrackResponse{}
-	mi := &file_library_v1_library_proto_msgTypes[11]
+	mi := &file_library_v1_library_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -591,7 +842,7 @@ func (x *GetTrackResponse) String() string {
 func (*GetTrackResponse) ProtoMessage() {}
 
 func (x *GetTrackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[11]
+	mi := &file_library_v1_library_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -604,7 +855,7 @@ func (x *GetTrackResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTrackResponse.ProtoReflect.Descriptor instead.
 func (*GetTrackResponse) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{11}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetTrackResponse) GetTrack() *Track {
@@ -630,15 +881,27 @@ const file_library_v1_library_proto_rawDesc = "" +
 	"\x10GetArtistRequest\x12\x16\n" +
 	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\"?\n" +
 	"\x11GetArtistResponse\x12*\n" +
-	"\x06artist\x18\x01 \x01(\v2\x12.library.v1.ArtistR\x06artist\"l\n" +
+	"\x06artist\x18\x01 \x01(\v2\x12.library.v1.ArtistR\x06artist\"\xdb\x02\n" +
 	"\x11ListAlbumsRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x1b\n" +
-	"\tartist_id\x18\x03 \x01(\tR\bartistId\"e\n" +
+	"\tartist_id\x18\x03 \x01(\tR\bartistId\x120\n" +
+	"\x14include_all_versions\x18\x04 \x01(\bR\x12includeAllVersions\x126\n" +
+	"\valbum_types\x18\x05 \x03(\x0e2\x15.library.v1.AlbumTypeR\n" +
+	"albumTypes\x125\n" +
+	"\bbootlegs\x18\x06 \x01(\x0e2\x19.library.v1.BootlegFilterR\bbootlegs\x12,\n" +
+	"\x05order\x18\a \x01(\x0e2\x16.library.v1.AlbumOrderR\x05order\x12\x1e\n" +
+	"\n" +
+	"descending\x18\b \x01(\bR\n" +
+	"descending\"e\n" +
 	"\x12ListAlbumsResponse\x12'\n" +
 	"\x05items\x18\x01 \x03(\v2\x11.library.v1.AlbumR\x05items\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\")\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"=\n" +
+	"\x18ListAlbumVersionsRequest\x12!\n" +
+	"\balbum_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aalbumId\"D\n" +
+	"\x19ListAlbumVersionsResponse\x12'\n" +
+	"\x05items\x18\x01 \x03(\v2\x11.library.v1.AlbumR\x05items\")\n" +
 	"\x0fGetAlbumRequest\x12\x16\n" +
 	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\";\n" +
 	"\x10GetAlbumResponse\x12'\n" +
@@ -654,13 +917,26 @@ const file_library_v1_library_proto_rawDesc = "" +
 	"\x0fGetTrackRequest\x12\x16\n" +
 	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\";\n" +
 	"\x10GetTrackResponse\x12'\n" +
-	"\x05track\x18\x01 \x01(\v2\x11.library.v1.TrackR\x05track2\xde\x03\n" +
+	"\x05track\x18\x01 \x01(\v2\x11.library.v1.TrackR\x05track*\xb5\x01\n" +
+	"\n" +
+	"AlbumOrder\x12\x1b\n" +
+	"\x17ALBUM_ORDER_UNSPECIFIED\x10\x00\x12\x15\n" +
+	"\x11ALBUM_ORDER_TITLE\x10\x01\x12\x16\n" +
+	"\x12ALBUM_ORDER_ARTIST\x10\x02\x12\x1c\n" +
+	"\x18ALBUM_ORDER_RELEASE_DATE\x10\x03\x12\x1d\n" +
+	"\x19ALBUM_ORDER_ORIGINAL_DATE\x10\x04\x12\x1e\n" +
+	"\x1aALBUM_ORDER_RECENTLY_ADDED\x10\x05*d\n" +
+	"\rBootlegFilter\x12\x1e\n" +
+	"\x1aBOOTLEG_FILTER_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16BOOTLEG_FILTER_EXCLUDE\x10\x01\x12\x17\n" +
+	"\x13BOOTLEG_FILTER_ONLY\x10\x022\xc2\x04\n" +
 	"\x0eLibraryService\x12P\n" +
 	"\vListArtists\x12\x1e.library.v1.ListArtistsRequest\x1a\x1f.library.v1.ListArtistsResponse\"\x00\x12J\n" +
 	"\tGetArtist\x12\x1c.library.v1.GetArtistRequest\x1a\x1d.library.v1.GetArtistResponse\"\x00\x12M\n" +
 	"\n" +
 	"ListAlbums\x12\x1d.library.v1.ListAlbumsRequest\x1a\x1e.library.v1.ListAlbumsResponse\"\x00\x12G\n" +
-	"\bGetAlbum\x12\x1b.library.v1.GetAlbumRequest\x1a\x1c.library.v1.GetAlbumResponse\"\x00\x12M\n" +
+	"\bGetAlbum\x12\x1b.library.v1.GetAlbumRequest\x1a\x1c.library.v1.GetAlbumResponse\"\x00\x12b\n" +
+	"\x11ListAlbumVersions\x12$.library.v1.ListAlbumVersionsRequest\x1a%.library.v1.ListAlbumVersionsResponse\"\x00\x12M\n" +
 	"\n" +
 	"ListTracks\x12\x1d.library.v1.ListTracksRequest\x1a\x1e.library.v1.ListTracksResponse\"\x00\x12G\n" +
 	"\bGetTrack\x12\x1b.library.v1.GetTrackRequest\x1a\x1c.library.v1.GetTrackResponse\"\x00B\x9d\x01\n" +
@@ -680,48 +956,60 @@ func file_library_v1_library_proto_rawDescGZIP() []byte {
 	return file_library_v1_library_proto_rawDescData
 }
 
-var file_library_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_library_v1_library_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_library_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_library_v1_library_proto_goTypes = []any{
-	(*ListArtistsRequest)(nil),  // 0: library.v1.ListArtistsRequest
-	(*ListArtistsResponse)(nil), // 1: library.v1.ListArtistsResponse
-	(*GetArtistRequest)(nil),    // 2: library.v1.GetArtistRequest
-	(*GetArtistResponse)(nil),   // 3: library.v1.GetArtistResponse
-	(*ListAlbumsRequest)(nil),   // 4: library.v1.ListAlbumsRequest
-	(*ListAlbumsResponse)(nil),  // 5: library.v1.ListAlbumsResponse
-	(*GetAlbumRequest)(nil),     // 6: library.v1.GetAlbumRequest
-	(*GetAlbumResponse)(nil),    // 7: library.v1.GetAlbumResponse
-	(*ListTracksRequest)(nil),   // 8: library.v1.ListTracksRequest
-	(*ListTracksResponse)(nil),  // 9: library.v1.ListTracksResponse
-	(*GetTrackRequest)(nil),     // 10: library.v1.GetTrackRequest
-	(*GetTrackResponse)(nil),    // 11: library.v1.GetTrackResponse
-	(*Artist)(nil),              // 12: library.v1.Artist
-	(*Album)(nil),               // 13: library.v1.Album
-	(*Track)(nil),               // 14: library.v1.Track
+	(AlbumOrder)(0),                   // 0: library.v1.AlbumOrder
+	(BootlegFilter)(0),                // 1: library.v1.BootlegFilter
+	(*ListArtistsRequest)(nil),        // 2: library.v1.ListArtistsRequest
+	(*ListArtistsResponse)(nil),       // 3: library.v1.ListArtistsResponse
+	(*GetArtistRequest)(nil),          // 4: library.v1.GetArtistRequest
+	(*GetArtistResponse)(nil),         // 5: library.v1.GetArtistResponse
+	(*ListAlbumsRequest)(nil),         // 6: library.v1.ListAlbumsRequest
+	(*ListAlbumsResponse)(nil),        // 7: library.v1.ListAlbumsResponse
+	(*ListAlbumVersionsRequest)(nil),  // 8: library.v1.ListAlbumVersionsRequest
+	(*ListAlbumVersionsResponse)(nil), // 9: library.v1.ListAlbumVersionsResponse
+	(*GetAlbumRequest)(nil),           // 10: library.v1.GetAlbumRequest
+	(*GetAlbumResponse)(nil),          // 11: library.v1.GetAlbumResponse
+	(*ListTracksRequest)(nil),         // 12: library.v1.ListTracksRequest
+	(*ListTracksResponse)(nil),        // 13: library.v1.ListTracksResponse
+	(*GetTrackRequest)(nil),           // 14: library.v1.GetTrackRequest
+	(*GetTrackResponse)(nil),          // 15: library.v1.GetTrackResponse
+	(*Artist)(nil),                    // 16: library.v1.Artist
+	(AlbumType)(0),                    // 17: library.v1.AlbumType
+	(*Album)(nil),                     // 18: library.v1.Album
+	(*Track)(nil),                     // 19: library.v1.Track
 }
 var file_library_v1_library_proto_depIdxs = []int32{
-	12, // 0: library.v1.ListArtistsResponse.items:type_name -> library.v1.Artist
-	12, // 1: library.v1.GetArtistResponse.artist:type_name -> library.v1.Artist
-	13, // 2: library.v1.ListAlbumsResponse.items:type_name -> library.v1.Album
-	13, // 3: library.v1.GetAlbumResponse.album:type_name -> library.v1.Album
-	14, // 4: library.v1.ListTracksResponse.items:type_name -> library.v1.Track
-	14, // 5: library.v1.GetTrackResponse.track:type_name -> library.v1.Track
-	0,  // 6: library.v1.LibraryService.ListArtists:input_type -> library.v1.ListArtistsRequest
-	2,  // 7: library.v1.LibraryService.GetArtist:input_type -> library.v1.GetArtistRequest
-	4,  // 8: library.v1.LibraryService.ListAlbums:input_type -> library.v1.ListAlbumsRequest
-	6,  // 9: library.v1.LibraryService.GetAlbum:input_type -> library.v1.GetAlbumRequest
-	8,  // 10: library.v1.LibraryService.ListTracks:input_type -> library.v1.ListTracksRequest
-	10, // 11: library.v1.LibraryService.GetTrack:input_type -> library.v1.GetTrackRequest
-	1,  // 12: library.v1.LibraryService.ListArtists:output_type -> library.v1.ListArtistsResponse
-	3,  // 13: library.v1.LibraryService.GetArtist:output_type -> library.v1.GetArtistResponse
-	5,  // 14: library.v1.LibraryService.ListAlbums:output_type -> library.v1.ListAlbumsResponse
-	7,  // 15: library.v1.LibraryService.GetAlbum:output_type -> library.v1.GetAlbumResponse
-	9,  // 16: library.v1.LibraryService.ListTracks:output_type -> library.v1.ListTracksResponse
-	11, // 17: library.v1.LibraryService.GetTrack:output_type -> library.v1.GetTrackResponse
-	12, // [12:18] is the sub-list for method output_type
-	6,  // [6:12] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	16, // 0: library.v1.ListArtistsResponse.items:type_name -> library.v1.Artist
+	16, // 1: library.v1.GetArtistResponse.artist:type_name -> library.v1.Artist
+	17, // 2: library.v1.ListAlbumsRequest.album_types:type_name -> library.v1.AlbumType
+	1,  // 3: library.v1.ListAlbumsRequest.bootlegs:type_name -> library.v1.BootlegFilter
+	0,  // 4: library.v1.ListAlbumsRequest.order:type_name -> library.v1.AlbumOrder
+	18, // 5: library.v1.ListAlbumsResponse.items:type_name -> library.v1.Album
+	18, // 6: library.v1.ListAlbumVersionsResponse.items:type_name -> library.v1.Album
+	18, // 7: library.v1.GetAlbumResponse.album:type_name -> library.v1.Album
+	19, // 8: library.v1.ListTracksResponse.items:type_name -> library.v1.Track
+	19, // 9: library.v1.GetTrackResponse.track:type_name -> library.v1.Track
+	2,  // 10: library.v1.LibraryService.ListArtists:input_type -> library.v1.ListArtistsRequest
+	4,  // 11: library.v1.LibraryService.GetArtist:input_type -> library.v1.GetArtistRequest
+	6,  // 12: library.v1.LibraryService.ListAlbums:input_type -> library.v1.ListAlbumsRequest
+	10, // 13: library.v1.LibraryService.GetAlbum:input_type -> library.v1.GetAlbumRequest
+	8,  // 14: library.v1.LibraryService.ListAlbumVersions:input_type -> library.v1.ListAlbumVersionsRequest
+	12, // 15: library.v1.LibraryService.ListTracks:input_type -> library.v1.ListTracksRequest
+	14, // 16: library.v1.LibraryService.GetTrack:input_type -> library.v1.GetTrackRequest
+	3,  // 17: library.v1.LibraryService.ListArtists:output_type -> library.v1.ListArtistsResponse
+	5,  // 18: library.v1.LibraryService.GetArtist:output_type -> library.v1.GetArtistResponse
+	7,  // 19: library.v1.LibraryService.ListAlbums:output_type -> library.v1.ListAlbumsResponse
+	11, // 20: library.v1.LibraryService.GetAlbum:output_type -> library.v1.GetAlbumResponse
+	9,  // 21: library.v1.LibraryService.ListAlbumVersions:output_type -> library.v1.ListAlbumVersionsResponse
+	13, // 22: library.v1.LibraryService.ListTracks:output_type -> library.v1.ListTracksResponse
+	15, // 23: library.v1.LibraryService.GetTrack:output_type -> library.v1.GetTrackResponse
+	17, // [17:24] is the sub-list for method output_type
+	10, // [10:17] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_library_v1_library_proto_init() }
@@ -737,13 +1025,14 @@ func file_library_v1_library_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_library_v1_library_proto_rawDesc), len(file_library_v1_library_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   12,
+			NumEnums:      2,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_library_v1_library_proto_goTypes,
 		DependencyIndexes: file_library_v1_library_proto_depIdxs,
+		EnumInfos:         file_library_v1_library_proto_enumTypes,
 		MessageInfos:      file_library_v1_library_proto_msgTypes,
 	}.Build()
 	File_library_v1_library_proto = out.File

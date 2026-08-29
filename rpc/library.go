@@ -14,7 +14,8 @@ type LibraryReader interface {
 	Artist(ctx context.Context, id uuid.UUID) (library.Artist, error)
 	Artists(ctx context.Context, token string, limit int) ([]library.Artist, string, error)
 	Album(ctx context.Context, id uuid.UUID) (library.Album, error)
-	Albums(ctx context.Context, artistID uuid.UUID, token string, limit int) ([]library.Album, string, error)
+	Albums(ctx context.Context, query library.AlbumQuery, token string, limit int) ([]library.Album, string, error)
+	AlbumVersions(ctx context.Context, id uuid.UUID) ([]library.Album, error)
 	Track(ctx context.Context, id uuid.UUID) (library.Track, error)
 	Tracks(ctx context.Context, albumID uuid.UUID, token string, limit int) ([]library.Track, string, error)
 }
@@ -63,7 +64,28 @@ func (s *LibraryServer) ListAlbums(ctx context.Context, req *libraryv1.ListAlbum
 		return nil, err
 	}
 
-	albums, next, err := s.store.Albums(ctx, artistID, req.GetPageToken(), int(req.GetPageSize()))
+	types, err := albumTypeFilter("album_types", req.GetAlbumTypes())
+	if err != nil {
+		return nil, err
+	}
+	bootlegs, err := bootlegFilter("bootlegs", req.GetBootlegs())
+	if err != nil {
+		return nil, err
+	}
+	order, err := albumOrder("order", req.GetOrder())
+	if err != nil {
+		return nil, err
+	}
+
+	query := library.AlbumQuery{
+		ArtistID:           artistID,
+		IncludeAllVersions: req.GetIncludeAllVersions(),
+		Types:              types,
+		Bootlegs:           bootlegs,
+		Order:              order,
+		Descending:         req.GetDescending(),
+	}
+	albums, next, err := s.store.Albums(ctx, query, req.GetPageToken(), int(req.GetPageSize()))
 	if err != nil {
 		return nil, rpcError(err)
 	}
@@ -89,6 +111,26 @@ func (s *LibraryServer) GetAlbum(ctx context.Context, req *libraryv1.GetAlbumReq
 		return nil, rpcError(err)
 	}
 	return &libraryv1.GetAlbumResponse{Album: albumProto(album)}, nil
+}
+
+func (s *LibraryServer) ListAlbumVersions(ctx context.Context, req *libraryv1.ListAlbumVersionsRequest) (*libraryv1.ListAlbumVersionsResponse, error) {
+	id, err := parseID("album_id", req.GetAlbumId())
+	if err != nil {
+		return nil, err
+	}
+
+	albums, err := s.store.AlbumVersions(ctx, id)
+	if err != nil {
+		return nil, rpcError(err)
+	}
+
+	res := &libraryv1.ListAlbumVersionsResponse{
+		Items: make([]*libraryv1.Album, 0, len(albums)),
+	}
+	for _, al := range albums {
+		res.Items = append(res.Items, albumProto(al))
+	}
+	return res, nil
 }
 
 func (s *LibraryServer) ListTracks(ctx context.Context, req *libraryv1.ListTracksRequest) (*libraryv1.ListTracksResponse, error) {

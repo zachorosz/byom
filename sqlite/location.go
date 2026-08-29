@@ -52,6 +52,10 @@ func (s *LocationStore) Location(ctx context.Context, id uuid.UUID) (storage.Loc
 	return loc, nil
 }
 
+type locationCursor struct {
+	ID uuid.UUID `json:"id"`
+}
+
 // Locations returns a page of locations ordered by ID, resuming after
 // token. The returned token fetches the next page and is empty once
 // the listing is exhausted.
@@ -61,12 +65,12 @@ func (s *LocationStore) Locations(ctx context.Context, token string, limit int) 
 	q := `SELECT id, uri, available FROM locations`
 	var args []any
 	if token != "" {
-		cur, err := page.DecodeToken(token, 1)
-		if err != nil {
+		var cur locationCursor
+		if err := page.Decode(token, &cur); err != nil {
 			return nil, "", err
 		}
 		q += ` WHERE id > ?`
-		args = append(args, cur[0])
+		args = append(args, cur.ID)
 	}
 	q += ` ORDER BY id LIMIT ?`
 	args = append(args, limit+1)
@@ -93,7 +97,11 @@ func (s *LocationStore) Locations(ctx context.Context, token string, limit int) 
 		return locations, "", nil
 	}
 	locations = locations[:limit]
-	return locations, page.EncodeToken(locations[limit-1].ID.String()), nil
+	next, err := page.Encode(locationCursor{ID: locations[limit-1].ID})
+	if err != nil {
+		return nil, "", err
+	}
+	return locations, next, nil
 }
 
 // Update replaces a location's URI. It fails with storage.ErrNotExists

@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -36,6 +35,11 @@ func (s *LibraryStore) Artist(ctx context.Context, id uuid.UUID) (library.Artist
 	return a, nil
 }
 
+type artistCursor struct {
+	SortName string    `json:"sort_name"`
+	ID       uuid.UUID `json:"id"`
+}
+
 // Artists returns a page of artists ordered by sort name, resuming
 // after token. The returned token fetches the next page and is empty
 // once the listing is exhausted.
@@ -45,12 +49,12 @@ func (s *LibraryStore) Artists(ctx context.Context, token string, limit int) ([]
 	q := `SELECT ` + artistColumns + ` FROM artists`
 	var args []any
 	if token != "" {
-		cur, err := page.DecodeToken(token, 2)
-		if err != nil {
+		var cur artistCursor
+		if err := page.Decode(token, &cur); err != nil {
 			return nil, "", err
 		}
 		q += ` WHERE (sort_name, id) > (?, ?)`
-		args = append(args, cur[0], cur[1])
+		args = append(args, cur.SortName, cur.ID)
 	}
 	q += ` ORDER BY sort_name, id LIMIT ?`
 	args = append(args, limit+1)
@@ -78,18 +82,24 @@ func (s *LibraryStore) Artists(ctx context.Context, token string, limit int) ([]
 	}
 	artists = artists[:limit]
 	last := artists[limit-1]
-	return artists, page.EncodeToken(last.SortName, last.ID.String()), nil
+	next, err := page.Encode(artistCursor{SortName: last.SortName, ID: last.ID})
+	if err != nil {
+		return nil, "", err
+	}
+	return artists, next, nil
 }
 
 const albumColumns = `a.id, a.dir_id, a.title, a.album_type, a.release_date,
 	a.original_release_date, a.release_country, a.bootleg, a.compilation,
-	a.live, a.group_key, a.version, a.primary_version, COALESCE(img.content_hash, '') AS cover_hash`
+	a.live, a.group_key, a.version, a.primary_version, a.artist_sort,
+	COALESCE(img.content_hash, '') AS cover_hash`
 
 func scanAlbum(scanFn func(...any) error) (library.Album, error) {
 	var al library.Album
 	err := scanFn(&al.ID, &al.DirID, &al.Title, &al.Type, &al.ReleaseDate,
 		&al.OriginalReleaseDate, &al.ReleaseCountry, &al.Bootleg, &al.Compilation,
-		&al.Live, &al.GroupKey, &al.Version, &al.PrimaryVersion, &al.CoverHash)
+		&al.Live, &al.GroupKey, &al.Version, &al.PrimaryVersion, &al.ArtistSort,
+		&al.CoverHash)
 	return al, err
 }
 
@@ -118,11 +128,72 @@ func (s *LibraryStore) Album(ctx context.Context, id uuid.UUID) (library.Album, 
 	return al, nil
 }
 
-// Albums returns a page of albums ordered by title, resuming after
-// token and restricted to artistID when it is not uuid.Nil. Each album
-// carries its credited artists. The returned token fetches the next
-// page and is empty once the listing is exhausted.
-func (s *LibraryStore) Albums(ctx context.Context, artistID uuid.UUID, token string, limit int) ([]library.Album, string, error) {
+// unknownDate sorts after every real date, since a blank date means
+// unknown rather than ancient.
+const unknownDate = "9999"
+
+const (
+	releaseDateExpr  = `COALESCE(NULLIF(a.release_date, ''), '` + unknownDate + `')`
+	originalDateExpr = `COALESCE(NULLIF(a.original_release_date, ''), '` + unknownDate + `')`
+)
+
+func sortableDate(date string) string {
+	if date == "" {
+		return unknownDate
+	}
+	return date
+}
+
+type albumCursor struct {
+	Query        library.AlbumQuery `json:"query"`
+	Title        string             `json:"title"`
+	ArtistSort   string             `json:"artist_sort,omitempty"`
+	ReleaseDate  string             `json:"release_date,omitempty"`
+	OriginalDate string             `json:"original_date,omitempty"`
+	ID           uuid.UUID          `json:"id"`
+}
+
+func newAlbumCursor(query library.AlbumQuery, al library.Album) albumCursor {
+	return albumCursor{
+		Query:        query,
+		Title:        al.Title,
+		ArtistSort:   al.ArtistSort,
+		ReleaseDate:  sortableDate(al.ReleaseDate),
+		OriginalDate: sortableDate(al.OriginalReleaseDate),
+		ID:           al.ID,
+	}
+}
+
+// albumSort returns the sort expressions for an ordering and cur's
+// matching values, always ending with the album ID so that the
+// ordering is total. An unrecognized order is an error rather than a
+// silent fallback.
+func albumSort(order library.AlbumOrder, cur albumCursor) ([]string, []any, error) {
+	switch order {
+	case library.AlbumOrderTitle:
+		return []string{`a.title`, `a.id`},
+			[]any{cur.Title, cur.ID}, nil
+	case library.AlbumOrderArtist:
+		return []string{`a.artist_sort`, originalDateExpr, `a.title`, `a.id`},
+			[]any{cur.ArtistSort, cur.OriginalDate, cur.Title, cur.ID}, nil
+	case library.AlbumOrderReleaseDate:
+		return []string{releaseDateExpr, `a.title`, `a.id`},
+			[]any{cur.ReleaseDate, cur.Title, cur.ID}, nil
+	case library.AlbumOrderOriginalDate:
+		return []string{originalDateExpr, `a.title`, `a.id`},
+			[]any{cur.OriginalDate, cur.Title, cur.ID}, nil
+	case library.AlbumOrderRecentlyAdded:
+		return []string{`a.id`}, []any{cur.ID}, nil
+	}
+	return nil, nil, fmt.Errorf("unknown album order %q", order)
+}
+
+// Albums returns a page of albums narrowed and sorted by query,
+// resuming after token. Each album carries its credited artists. The
+// returned token fetches the next page and is empty once the listing is
+// exhausted. Resuming with a query other than the one the token was
+// issued for fails with page.ErrInvalidToken.
+func (s *LibraryStore) Albums(ctx context.Context, query library.AlbumQuery, token string, limit int) ([]library.Album, string, error) {
 	limit = page.Size(limit)
 
 	q := `SELECT ` + albumColumns + `
@@ -132,23 +203,61 @@ func (s *LibraryStore) Albums(ctx context.Context, artistID uuid.UUID, token str
 	`
 	var args []any
 	var where []string
-	if artistID != uuid.Nil {
+	if query.ArtistID != uuid.Nil {
 		q += ` JOIN album_artists aa ON aa.album_id = a.id`
 		where = append(where, `aa.artist_id = ?`)
-		args = append(args, artistID)
+		args = append(args, query.ArtistID)
 	}
+	if !query.IncludeAllVersions {
+		where = append(where, `a.primary_version = 1`)
+	}
+	if len(query.Types) > 0 {
+		where = append(where, `a.album_type IN (`+placeholders(len(query.Types))+`)`)
+		for _, t := range query.Types {
+			args = append(args, string(t))
+		}
+	}
+	switch query.Bootlegs {
+	case library.BootlegsExclude:
+		where = append(where, `a.bootleg = 0`)
+	case library.BootlegsOnly:
+		where = append(where, `a.bootleg = 1`)
+	}
+
+	var cur albumCursor
 	if token != "" {
-		cur, err := page.DecodeToken(token, 2)
-		if err != nil {
+		if err := page.Decode(token, &cur); err != nil {
 			return nil, "", err
 		}
-		where = append(where, `(a.title, a.id) > (?, ?)`)
-		args = append(args, cur[0], cur[1])
+		if !cur.Query.Equal(query) {
+			return nil, "", fmt.Errorf("%w: query changed mid-listing", page.ErrInvalidToken)
+		}
 	}
+	sortExprs, cursorValues, err := albumSort(query.Order, cur)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Descending flips every key, so the keyset comparison stays a
+	// single row-value comparison rather than an OR expansion.
+	direction, compare := ` ASC`, `>`
+	if query.Descending {
+		direction, compare = ` DESC`, `<`
+	}
+	if token != "" {
+		where = append(where, `(`+strings.Join(sortExprs, `, `)+`) `+compare+
+			` (`+placeholders(len(sortExprs))+`)`)
+		args = append(args, cursorValues...)
+	}
+
 	if len(where) > 0 {
 		q += ` WHERE ` + strings.Join(where, ` AND `)
 	}
-	q += ` ORDER BY a.title, a.id LIMIT ?`
+	orderBy := make([]string, len(sortExprs))
+	for i, expr := range sortExprs {
+		orderBy[i] = expr + direction
+	}
+	q += ` ORDER BY ` + strings.Join(orderBy, `, `) + ` LIMIT ?`
 	args = append(args, limit+1)
 
 	rows, err := s.db.QueryContext(ctx, q, args...)
@@ -172,8 +281,9 @@ func (s *LibraryStore) Albums(ctx context.Context, artistID uuid.UUID, token str
 	next := ""
 	if len(albums) > limit {
 		albums = albums[:limit]
-		last := albums[limit-1]
-		next = page.EncodeToken(last.Title, last.ID.String())
+		if next, err = page.Encode(newAlbumCursor(query, albums[limit-1])); err != nil {
+			return nil, "", err
+		}
 	}
 
 	ids := make([]uuid.UUID, len(albums))
@@ -188,6 +298,53 @@ func (s *LibraryStore) Albums(ctx context.Context, artistID uuid.UUID, token str
 		albums[i].Artists = byAlbum[albums[i].ID]
 	}
 	return albums, next, nil
+}
+
+// AlbumVersions returns every album sharing id's version group,
+// including id itself, with the primary version first and the rest by
+// release date. It returns library.ErrNotFound if no album has id.
+func (s *LibraryStore) AlbumVersions(ctx context.Context, id uuid.UUID) ([]library.Album, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT `+albumColumns+`
+		 FROM albums AS a
+		 LEFT JOIN album_images AS cov ON a.id = cov.album_id AND cov.set_cover = 1
+		 LEFT JOIN images AS img ON img.id = cov.image_id
+		 WHERE a.group_key = (SELECT group_key FROM albums WHERE id = ?)
+		 ORDER BY a.primary_version DESC, a.release_date, a.id`, id)
+	if err != nil {
+		return nil, fmt.Errorf("list album versions: %w", err)
+	}
+	defer rows.Close()
+
+	var albums []library.Album
+	for rows.Next() {
+		al, err := scanAlbum(rows.Scan)
+		if err != nil {
+			return nil, fmt.Errorf("scan album: %w", err)
+		}
+		albums = append(albums, al)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate album versions: %w", err)
+	}
+	// The album belongs to its own group, so an empty group means the
+	// album does not exist.
+	if len(albums) == 0 {
+		return nil, fmt.Errorf("album %s: %w", id, library.ErrNotFound)
+	}
+
+	ids := make([]uuid.UUID, len(albums))
+	for i, al := range albums {
+		ids[i] = al.ID
+	}
+	byAlbum, err := s.albumArtists(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	for i := range albums {
+		albums[i].Artists = byAlbum[albums[i].ID]
+	}
+	return albums, nil
 }
 
 // albumArtists returns the credited artists of each album in ids,
@@ -261,10 +418,19 @@ func (s *LibraryStore) Track(ctx context.Context, id uuid.UUID) (library.Track, 
 	return t, nil
 }
 
+type trackCursor struct {
+	AlbumID     uuid.UUID `json:"album_id"`
+	DiscNumber  int       `json:"disc_number"`
+	TrackNumber int       `json:"track_number"`
+	ID          uuid.UUID `json:"id"`
+}
+
 // Tracks returns a page of tracks in disc and track order, resuming
 // after token and restricted to albumID when it is not uuid.Nil. Each
 // track carries its credits. The returned token fetches the next page
-// and is empty once the listing is exhausted.
+// and is empty once the listing is exhausted. Resuming with an albumID
+// other than the one the token was issued for fails with
+// page.ErrInvalidToken.
 func (s *LibraryStore) Tracks(ctx context.Context, albumID uuid.UUID, token string, limit int) ([]library.Track, string, error) {
 	limit = page.Size(limit)
 
@@ -276,16 +442,15 @@ func (s *LibraryStore) Tracks(ctx context.Context, albumID uuid.UUID, token stri
 		args = append(args, albumID)
 	}
 	if token != "" {
-		cur, err := page.DecodeToken(token, 3)
-		if err != nil {
+		var cur trackCursor
+		if err := page.Decode(token, &cur); err != nil {
 			return nil, "", err
 		}
-		disc, trackNo, err := parseTrackCursor(cur)
-		if err != nil {
-			return nil, "", err
+		if cur.AlbumID != albumID {
+			return nil, "", fmt.Errorf("%w: album changed mid-listing", page.ErrInvalidToken)
 		}
 		where = append(where, `(disc_number, track_number, id) > (?, ?, ?)`)
-		args = append(args, disc, trackNo, cur[2])
+		args = append(args, cur.DiscNumber, cur.TrackNumber, cur.ID)
 	}
 	if len(where) > 0 {
 		q += ` WHERE ` + strings.Join(where, ` AND `)
@@ -315,8 +480,16 @@ func (s *LibraryStore) Tracks(ctx context.Context, albumID uuid.UUID, token stri
 	if len(tracks) > limit {
 		tracks = tracks[:limit]
 		last := tracks[limit-1]
-		next = page.EncodeToken(
-			strconv.Itoa(last.DiscNumber), strconv.Itoa(last.TrackNumber), last.ID.String())
+		cur := trackCursor{
+			AlbumID:     albumID,
+			DiscNumber:  last.DiscNumber,
+			TrackNumber: last.TrackNumber,
+			ID:          last.ID,
+		}
+		var err error
+		if next, err = page.Encode(cur); err != nil {
+			return nil, "", err
+		}
 	}
 
 	ids := make([]uuid.UUID, len(tracks))
@@ -331,16 +504,6 @@ func (s *LibraryStore) Tracks(ctx context.Context, albumID uuid.UUID, token stri
 		tracks[i].Credits = byTrack[tracks[i].ID]
 	}
 	return tracks, next, nil
-}
-
-func parseTrackCursor(cur []string) (disc, trackNo int, err error) {
-	if disc, err = strconv.Atoi(cur[0]); err != nil {
-		return 0, 0, fmt.Errorf("%w: disc number: %v", page.ErrInvalidToken, err)
-	}
-	if trackNo, err = strconv.Atoi(cur[1]); err != nil {
-		return 0, 0, fmt.Errorf("%w: track number: %v", page.ErrInvalidToken, err)
-	}
-	return disc, trackNo, nil
 }
 
 // trackCredits returns the credits of each track in ids, keyed by

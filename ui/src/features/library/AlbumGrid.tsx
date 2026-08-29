@@ -12,8 +12,9 @@ function credits(album: Album): string {
 }
 
 function meta(album: Album): string {
-  const year = album.releaseDate.slice(0, 4);
-  return [year, album.media].filter(Boolean).join(" · ");
+  return [album.originalReleaseDate || album.releaseDate, album.media]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** AlbumGrid renders albums as a responsive grid of cover tiles. */
@@ -25,7 +26,9 @@ export default function AlbumGrid(props: AlbumGridProps) {
           <li>
             <a href={`/albums/${album.id}`} class="block no-underline">
               <Cover title={album.title} coverHash={album.coverHash} />
-              <div class="mt-2.5 font-serif text-sm leading-tight">{album.title}</div>
+              <div class="mt-2.5 font-serif text-sm leading-tight">
+                {album.title}
+              </div>
               <Show when={album.artists.length > 0}>
                 <div class="text-muted mt-0.5 text-xs">{credits(album)}</div>
               </Show>
