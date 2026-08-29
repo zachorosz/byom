@@ -5,8 +5,6 @@ import type { Duration, Timestamp } from '@bufbuild/protobuf/wkt';
 import {
   albumFlags,
   albumTypeLabel,
-  coverGradient,
-  coverInitials,
   formatDuration,
   formatTrackDuration,
   relativeTime,
@@ -73,36 +71,6 @@ describe('albumFlags', () => {
   test('albumFlags on a plain album is empty', () => {
     const album = { live: false, bootleg: false, compilation: false } as Album;
     expect(albumFlags(album)).toEqual([]);
-  });
-});
-
-describe('coverInitials', () => {
-  test('coverInitials takes the first letter of up to two words', () => {
-    expect(coverInitials('Kid A')).toBe('KA');
-  });
-
-  test('coverInitials on one word takes its first two letters', () => {
-    expect(coverInitials('Loveless')).toBe('LO');
-  });
-
-  test('coverInitials on an empty title = got, want "?"', () => {
-    expect(coverInitials('')).toBe('?');
-  });
-});
-
-describe('coverGradient', () => {
-  test('coverGradient is deterministic for the same id', () => {
-    expect(coverGradient('abc-123')).toEqual(coverGradient('abc-123'));
-  });
-
-  test('coverGradient separates different ids', () => {
-    expect(coverGradient('abc-123')).not.toEqual(coverGradient('def-456'));
-  });
-
-  test('coverGradient returns two hsl stops', () => {
-    const { from, to } = coverGradient('abc-123');
-    expect(from).toMatch(/^hsl\(\d+ \d+% \d+%\)$/);
-    expect(to).toMatch(/^hsl\(\d+ \d+% \d+%\)$/);
   });
 });
 

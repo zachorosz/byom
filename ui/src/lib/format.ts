@@ -62,34 +62,6 @@ export function albumFlags(a: Album): string[] {
   return flags;
 }
 
-/** coverInitials returns up to two letters standing in for missing cover art. */
-export function coverInitials(title: string): string {
-  const words = title.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '?';
-  if (words.length === 1) return words[0]!.slice(0, 2).toUpperCase();
-  return (words[0]![0]! + words[1]![0]!).toUpperCase();
-}
-
-/**
- * coverGradient returns the two gradient stops for an album's placeholder.
- *
- * Stable across reloads for a given id, so a placeholder tile reads as the
- * same object every time rather than reshuffling on each render.
- */
-export function coverGradient(id: string): { from: string; to: string } {
-  // FNV-1a: cheap, well-distributed, and stable across engines.
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < id.length; i++) {
-    hash ^= id.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  const hue = hash % 360;
-  return {
-    from: `hsl(${hue} 18% 32%)`,
-    to: `hsl(${(hue + 18) % 360} 22% 12%)`,
-  };
-}
-
 /** relativeTime renders how long ago a timestamp was, or "never" when absent. */
 export function relativeTime(ts?: Timestamp, now: Date = new Date()): string {
   if (!ts) return 'never';

@@ -27,7 +27,7 @@ export default function ReleaseHeader(props: ReleaseHeaderProps) {
   return (
     <header class="mb-8 flex flex-col gap-6 sm:flex-row">
       <div class="w-40 flex-none">
-        <Cover id={props.album.id} title={props.album.title} size="hero" />
+        <Cover title={props.album.title} />
       </div>
       <div>
         <h1 class="font-serif text-3xl leading-tight">{props.album.title}</h1>
