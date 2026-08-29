@@ -1,6 +1,7 @@
 package metadata
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -71,8 +72,8 @@ func splitArtistValues(values []string) []string {
 	return splitValues(values, []string{" / "})
 }
 
-// firstMatching looks through names in order and returns the values
-// for the first key found in tags.
+// firstMatching looks through keys in order and returns the values for the
+// first key found in tags.
 func firstMatching(tags map[string][]string, keys []string) []string {
 	for _, k := range keys {
 		if vals := tags[normTagKey(k)]; len(vals) > 0 {
@@ -82,8 +83,8 @@ func firstMatching(tags map[string][]string, keys []string) []string {
 	return nil
 }
 
-// firstValue finds the first matching tag slice and returns its
-// first non-empty string element.
+// firstValue finds the first matching tag slice and returns its first non-empty
+// string element.
 func firstValue(tags map[string][]string, keys []string) string {
 	for _, val := range firstMatching(tags, keys) {
 		if val != "" {
@@ -91,6 +92,13 @@ func firstValue(tags map[string][]string, keys []string) string {
 		}
 	}
 	return ""
+}
+
+// containsFold reports if key in tags contains v (case-insensitive).
+func containsFold(tags map[string][]string, key string, v string) bool {
+	return slices.ContainsFunc(firstMatching(tags, []string{key}), func(s string) bool {
+		return strings.EqualFold(s, v)
+	})
 }
 
 func truthy(s string) bool { return s == "1" }
@@ -188,27 +196,46 @@ func mapAlbum(tags map[string][]string) AlbumMetadata {
 		Title:               firstValue(tags, []string{"ALBUM"}),
 		ReleaseDate:         firstValue(tags, []string{"DATE", "YEAR"}),
 		OriginalReleaseDate: firstValue(tags, []string{"ORIGINALDATE", "ORIGINALYEAR"}),
-		Bootleg:             strings.EqualFold(firstValue(tags, []string{"RELEASETYPE"}), "bootleg"),
+		Bootleg:             strings.EqualFold(firstValue(tags, []string{"RELEASESTATUS"}), "bootleg"),
 		Compilation: truthy(firstValue(tags, []string{"COMPILATION"})) ||
-			strings.EqualFold(firstValue(tags, []string{"RELEASETYPE"}), "compilation"),
-		Live: strings.EqualFold(firstValue(tags, []string{"RELEASETYPE"}), "live"),
+			containsFold(tags, "RELEASETYPE", "compilation"),
+		Live: containsFold(tags, "RELEASETYPE", "live"),
 	}
 }
 
+// mapAlbumType determines the album classification (Main, Single, EP, etc.)
+// based on audio metadata tags.
+//
+// It prioritizes explicit values in the "RELEASETYPE" tag. If multiple values
+// exist, it returns the first definitive match. If no definitive match is found,
+// it falls back to checking if the "COMPILATION" tag is truthy.
 func mapAlbumType(tags map[string][]string) library.AlbumType {
-	s := strings.ToLower(firstValue(tags, []string{"RELEASETYPE"}))
-	switch s {
-	case "album", "live", "compilation":
-		return library.AlbumMain
-	case "single":
-		return library.AlbumSingle
-	case "ep", "extendedplay":
-		return library.AlbumEP
-	case "other":
-		return library.AlbumOther
-	default:
-		return library.AlbumTypeUnknown
+	albumType := library.AlbumTypeUnknown
+
+	for _, s := range firstMatching(tags, []string{"RELEASETYPE"}) {
+		switch strings.ToLower(s) {
+		case "album":
+			return library.AlbumMain
+		case "single":
+			return library.AlbumSingle
+		case "ep", "extendedplay":
+			return library.AlbumEP
+		case "other":
+			return library.AlbumOther
+		case "live", "compilation":
+			// Set as a fallback, but keep looping in case a stronger
+			// match (like "album" or "ep") exists in subsequent values.
+			albumType = library.AlbumMain
+		}
 	}
+
+	if albumType == library.AlbumTypeUnknown {
+		if truthy(firstValue(tags, []string{"COMPILATION"})) {
+			return library.AlbumMain
+		}
+	}
+
+	return albumType
 }
 
 func mapAlbumArtists(tags map[string][]string) []Credit {
