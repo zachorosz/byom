@@ -4,10 +4,11 @@
 package page
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 )
 
 const (
@@ -29,23 +30,34 @@ func Size(n int) int {
 	return min(n, MaxSize)
 }
 
-// EncodeToken encodes keyset cursor fields into an opaque token.
-func EncodeToken(fields ...string) string {
-	return base64.RawURLEncoding.EncodeToString([]byte(strings.Join(fields, "\x00")))
+// Encode encodes a keyset cursor into an opaque token.
+//
+// Cursors carry the parameters their listing was started under, so a
+// listing that resumes with different parameters can be rejected
+// rather than silently mixing two result sets.
+func Encode(cursor any) (string, error) {
+	raw, err := json.Marshal(cursor)
+	if err != nil {
+		return "", fmt.Errorf("encode page token: %w", err)
+	}
+	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 
-// DecodeToken decodes a token into exactly the requested number of cursor fields.
+// Decode decodes a token into dst, which must be a non-nil pointer to
+// a cursor.
 //
-// It returns ErrInvalidToken if the token is malformed or holds a different
-// number of fields.
-func DecodeToken(token string, want int) ([]string, error) {
+// It returns ErrInvalidToken if the token is malformed or does not
+// match dst's shape, which is how a token minted for another listing
+// is caught.
+func Decode(token string, dst any) error {
 	raw, err := base64.RawURLEncoding.DecodeString(token)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
-	fields := strings.Split(string(raw), "\x00")
-	if len(fields) != want {
-		return nil, fmt.Errorf("%w: got %d fields, want %d", ErrInvalidToken, len(fields), want)
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(dst); err != nil {
+		return fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
-	return fields, nil
+	return nil
 }
