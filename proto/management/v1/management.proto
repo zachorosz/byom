@@ -49,6 +49,8 @@ message DeleteLocationResponse {
 
 message ScanLocationRequest {
   string location_id = 1 [(buf.validate.field).required = true];
+  // Queue every synced dir for reparsing, not just the changed ones.
+  bool force = 2;
 }
 
 message ScanLocationResponse {

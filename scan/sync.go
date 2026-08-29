@@ -58,6 +58,7 @@ func (s *Scanner) syncDir(ctx context.Context, r *run, res walkResult) error {
 		Generation: r.gen,
 	}
 	payload.Changed, payload.Missing, payload.Dirty = computeChangeset(known, res)
+	payload.Dirty = payload.Dirty || r.force
 
 	if _, err := s.Store.SyncDir(ctx, payload); err != nil {
 		return err

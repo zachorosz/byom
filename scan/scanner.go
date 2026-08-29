@@ -56,6 +56,8 @@ type run struct {
 	locationID uuid.UUID
 	gen        int64
 	cancel     context.CancelFunc
+	// force queues every synced dir for parsing, not just changed ones.
+	force bool
 
 	fsys fs.FS
 
@@ -156,7 +158,10 @@ func (s *Scanner) Recover(ctx context.Context) error {
 // Start opens a scan record and runs the scan in the background,
 // returning once the record exists. It reports ErrScanRunning if the
 // location is already being scanned. The scan is detached from ctx.
-func (s *Scanner) Start(ctx context.Context, locationID uuid.UUID) (Scan, error) {
+//
+// When force is set, every dir the scan syncs is queued for parsing
+// rather than only those whose files changed.
+func (s *Scanner) Start(ctx context.Context, locationID uuid.UUID, force bool) (Scan, error) {
 	loc, err := s.Locations.Location(ctx, locationID)
 	if err != nil {
 		return Scan{}, err
@@ -173,6 +178,7 @@ func (s *Scanner) Start(ctx context.Context, locationID uuid.UUID) (Scan, error)
 		locationID: locationID,
 		cancel:     cancel,
 		fsys:       os.DirFS(root),
+		force:      force,
 	}
 	if err := s.claim(r); err != nil {
 		cancel()

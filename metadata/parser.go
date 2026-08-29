@@ -12,8 +12,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/zachorosz/byom/library"
-	"github.com/zachorosz/byom/metadata/audiometa"
-	"github.com/zachorosz/byom/metadata/taglib"
 	"github.com/zachorosz/byom/storage"
 )
 
@@ -98,15 +96,10 @@ func parseDir(
 		fp := filepath.Join(dir, f.Name)
 		switch f.Kind {
 		case storage.FileAudio:
-			audio, tags, err := audiometa.ReadAudio(ctx, fp)
+			audio, tags, err := readAudio(ctx, fp)
 			if err != nil {
-				// Fallback to the WASM-based taglib for unsupported formats or corrupted files
-				var taglibErr error
-				audio, tags, taglibErr = taglib.ReadAudio(fp)
-				if taglibErr != nil {
-					res.Errors = append(res.Errors, ParseError{FileID: f.ID, Message: fmt.Sprintf("audiometa failed (%v), taglib fallback failed: %v", err, taglibErr)})
-					continue
-				}
+				res.Errors = append(res.Errors, ParseError{FileID: f.ID, Message: err.Error()})
+				continue
 			}
 			tags = normTags(tags)
 
