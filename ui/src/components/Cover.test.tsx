@@ -15,6 +15,11 @@ describe('<Cover />', () => {
     expect(queryByRole('presentation')).toBeNull();
   });
 
+  test('it rests without a pulse when there is no cover to wait for', () => {
+    const { getByTestId } = render(() => <Cover title="Kid A" />);
+    expect(getByTestId('cover-skeleton')).not.toHaveClass('animate-pulse');
+  });
+
   test('it renders the artwork when a cover hash is present', () => {
     const { getByRole } = render(() => <Cover title="Kid A" coverHash="abc123" />);
     const img = getByRole('presentation') as HTMLImageElement;
@@ -52,12 +57,13 @@ describe('<Cover />', () => {
   });
 
   test('it falls back to the placeholder when the artwork fails to load', () => {
-    const { getByRole, getByLabelText, queryByRole } = render(() => (
+    const { getByRole, getByLabelText, getByTestId, queryByRole } = render(() => (
       <Cover title="Kid A" coverHash="abc123" />
     ));
     getByRole('presentation').dispatchEvent(new Event('error'));
     flush();
     expect(queryByRole('presentation')).toBeNull();
     expect(getByLabelText('Kid A — no cover art')).toBeInTheDocument();
+    expect(getByTestId('cover-skeleton')).not.toHaveClass('animate-pulse');
   });
 });

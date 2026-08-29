@@ -16,8 +16,9 @@ const WIDTHS = {
 /**
  * Cover renders an album's square artwork.
  *
- * The skeleton sits under the image, so a missing hash, a slow load, and a
- * failed request all degrade to it with no layout shift.
+ * The placeholder sits under the image and only pulses while artwork is
+ * actually in flight; an album with no hash rests as a flat tile rather than
+ * promising a cover that will never arrive.
  */
 export default function Cover(props: CoverProps) {
   const [loaded, setLoaded] = createSignal(false);
@@ -26,6 +27,7 @@ export default function Cover(props: CoverProps) {
   const widths = () => WIDTHS[props.size === 'hero' ? 'hero' : 'tile'];
   const src = (width: number) => `/images/${props.coverHash}?size=${width}`;
   const hasArtwork = () => Boolean(props.coverHash) && !failed();
+  const pending = () => hasArtwork() && !loaded();
 
   return (
     <div
@@ -38,7 +40,7 @@ export default function Cover(props: CoverProps) {
         data-testid="cover-skeleton"
         class={[
           'bg-panel border-line absolute inset-0 border',
-          { 'animate-pulse': !loaded() },
+          { 'animate-pulse': pending() },
         ]}
       />
       <Show when={hasArtwork()}>
