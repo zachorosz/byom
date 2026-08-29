@@ -48,7 +48,9 @@ describe('createInfiniteList', () => {
   });
 
   test('an empty next page token marks the list done', async () => {
-    const { fetchPage } = page({ '': { items: [{ id: 'a' }], nextPageToken: '' } });
+    const { fetchPage } = page({
+      '': { items: [{ id: 'a' }], nextPageToken: '' },
+    });
     await createRoot(async (dispose) => {
       const list = createInfiniteList(() => 'albums:', fetchPage);
       await flushAsync();
@@ -120,14 +122,17 @@ describe('createInfiniteList', () => {
   // signal, the new key's loadMore early-returns while the old fetch is still
   // running and the new list is left permanently empty.
   test('a key change during an in-flight fetch still loads the new list', async () => {
-    let resolveFirst: ((p: { items: Row[]; nextPageToken: string }) => void) | undefined;
+    let resolveFirst:
+      ((p: { items: Row[]; nextPageToken: string }) => void) | undefined;
     await createRoot(async (dispose) => {
       const [key, setKey] = createSignal('albums:all');
       const list = createInfiniteList(key, () => {
         if (key() === 'albums:all') {
-          return new Promise<{ items: Row[]; nextPageToken: string }>((resolve) => {
-            resolveFirst = resolve;
-          });
+          return new Promise<{ items: Row[]; nextPageToken: string }>(
+            (resolve) => {
+              resolveFirst = resolve;
+            }
+          );
         }
         return Promise.resolve({ items: [{ id: 'x' }], nextPageToken: '' });
       });
@@ -157,7 +162,7 @@ describe('createInfiniteList', () => {
             return { items: [{ id: 'a' }], nextPageToken: 'p2' };
           }
           throw new Error('boom');
-        },
+        }
       );
       await flushAsync();
       await list.loadMore();
@@ -168,7 +173,9 @@ describe('createInfiniteList', () => {
   });
 
   test('the accumulator remembers a scroll offset per key', async () => {
-    const { fetchPage } = page({ '': { items: [{ id: 'a' }], nextPageToken: '' } });
+    const { fetchPage } = page({
+      '': { items: [{ id: 'a' }], nextPageToken: '' },
+    });
     await createRoot(async (dispose) => {
       const list = createInfiniteList(() => 'albums:all', fetchPage);
       await flushAsync();

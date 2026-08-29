@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onSettled } from "solid-js";
+import { createEffect, createSignal, onSettled } from 'solid-js';
 
 interface InfiniteScrollSentinelProps {
   onIntersect: () => void;
@@ -8,7 +8,7 @@ interface InfiniteScrollSentinelProps {
 // InfiniteScrollSentinel calls onIntersect when its element approaches the
 // viewport, unless disabled.
 export default function InfiniteScrollSentinel(
-  props: InfiniteScrollSentinelProps,
+  props: InfiniteScrollSentinelProps
 ) {
   let ref: HTMLDivElement | undefined;
   // Intersecting and disabled are tracked as separate signals rather than
@@ -20,7 +20,7 @@ export default function InfiniteScrollSentinel(
   onSettled(() => {
     const observer = new IntersectionObserver(
       (entries) => setIntersecting(!!entries[0]?.isIntersecting),
-      { rootMargin: "200px" },
+      { rootMargin: '200px' }
     );
     if (ref) observer.observe(ref);
     return () => observer.disconnect();
@@ -30,7 +30,7 @@ export default function InfiniteScrollSentinel(
     () => intersecting() && !props.disabled,
     (shouldLoad) => {
       if (shouldLoad) props.onIntersect();
-    },
+    }
   );
 
   return <div ref={ref} class="h-1" />;

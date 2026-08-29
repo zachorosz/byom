@@ -1,5 +1,5 @@
-import { For } from "solid-js";
-import type { Artist } from "@proto/library/v1/artist_pb";
+import { For } from 'solid-js';
+import type { Artist } from '@proto/library/v1/artist_pb';
 
 interface ArtistListProps {
   artists: readonly Artist[];

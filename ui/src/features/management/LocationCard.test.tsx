@@ -1,22 +1,22 @@
-import { fireEvent, render } from "@solidjs/testing-library";
-import { Code, ConnectError } from "@connectrpc/connect";
-import type { Location } from "@proto/management/v1/location_pb";
-import { ScanState, type Scan } from "@proto/management/v1/scan_pb";
-import { Loading } from "solid-js";
-import { beforeEach, describe, expect, test } from "vitest";
-import { createRouter, memoryHistory, query } from "@solidjs/router";
+import { fireEvent, render } from '@solidjs/testing-library';
+import { Code, ConnectError } from '@connectrpc/connect';
+import type { Location } from '@proto/management/v1/location_pb';
+import { ScanState, type Scan } from '@proto/management/v1/scan_pb';
+import { Loading } from 'solid-js';
+import { beforeEach, describe, expect, test } from 'vitest';
+import { createRouter, memoryHistory, query } from '@solidjs/router';
 
-import LocationCard from "./LocationCard";
-import { fakeManagement } from "../../lib/rpc/testing";
+import LocationCard from './LocationCard';
+import { fakeManagement } from '../../lib/rpc/testing';
 
-const location = { id: "l1", path: "/mnt/music" } as Location;
+const location = { id: 'l1', path: '/mnt/music' } as Location;
 
 const scan = (over: Partial<Scan>): Scan =>
   ({
-    id: "s1",
-    locationId: "l1",
+    id: 's1',
+    locationId: 'l1',
     state: ScanState.DONE,
-    error: "",
+    error: '',
     finishTime: {
       seconds: BigInt(Math.floor(Date.now() / 1000)) - 172_800n,
       nanos: 0,
@@ -34,7 +34,7 @@ function card(running: Scan | undefined) {
   const TestRouter = createRouter({
     routes: [
       {
-        path: "/",
+        path: '/',
         component: () => (
           <Loading fallback={<span>loading</span>}>
             <LocationCard location={location} running={running} />
@@ -42,37 +42,37 @@ function card(running: Scan | undefined) {
         ),
       },
     ],
-    history: memoryHistory("/"),
+    history: memoryHistory('/'),
   });
   return render(() => <TestRouter />);
 }
 
-describe("<LocationCard />", () => {
+describe('<LocationCard />', () => {
   beforeEach(() => query.clear());
 
-  test("it shows the source path", async () => {
-    fakeManagement({ listScans: () => ({ items: [], nextPageToken: "" }) });
+  test('it shows the source path', async () => {
+    fakeManagement({ listScans: () => ({ items: [], nextPageToken: '' }) });
     const { findByText } = card(undefined);
-    expect(await findByText("/mnt/music")).toBeInTheDocument();
+    expect(await findByText('/mnt/music')).toBeInTheDocument();
   });
 
-  test("an idle source offers a Scan action", async () => {
-    fakeManagement({ listScans: () => ({ items: [], nextPageToken: "" }) });
+  test('an idle source offers a Scan action', async () => {
+    fakeManagement({ listScans: () => ({ items: [], nextPageToken: '' }) });
     const { findByRole } = card(undefined);
     expect(
-      await findByRole("button", { name: "Force Rescan" }),
+      await findByRole('button', { name: 'Force Rescan' })
     ).toBeInTheDocument();
   });
 
-  test("a source that has never been scanned says so", async () => {
-    fakeManagement({ listScans: () => ({ items: [], nextPageToken: "" }) });
+  test('a source that has never been scanned says so', async () => {
+    fakeManagement({ listScans: () => ({ items: [], nextPageToken: '' }) });
     const { findByText } = card(undefined);
     expect(await findByText(/never scanned/i)).toBeInTheDocument();
   });
 
-  test("it summarises the last scan with state, age and counts", async () => {
+  test('it summarises the last scan with state, age and counts', async () => {
     fakeManagement({
-      listScans: () => ({ items: [scan({})], nextPageToken: "" }),
+      listScans: () => ({ items: [scan({})], nextPageToken: '' }),
     });
     const { findByText } = card(undefined);
     expect(await findByText(/DONE/)).toBeInTheDocument();
@@ -80,47 +80,47 @@ describe("<LocationCard />", () => {
     expect(await findByText(/412 dirs/)).toBeInTheDocument();
   });
 
-  test("a failed last scan surfaces its error on the row", async () => {
+  test('a failed last scan surfaces its error on the row', async () => {
     fakeManagement({
       listScans: () => ({
-        items: [scan({ state: ScanState.FAILED, error: "permission denied" })],
-        nextPageToken: "",
+        items: [scan({ state: ScanState.FAILED, error: 'permission denied' })],
+        nextPageToken: '',
       }),
     });
     const { findByText } = card(undefined);
     expect(await findByText(/permission denied/)).toBeInTheDocument();
   });
 
-  test("a running source shows the scan panel instead of a Scan button", async () => {
-    fakeManagement({ listScans: () => ({ items: [], nextPageToken: "" }) });
+  test('a running source shows the scan panel instead of a Scan button', async () => {
+    fakeManagement({ listScans: () => ({ items: [], nextPageToken: '' }) });
     const { findByRole, queryByRole } = card(
-      scan({ state: ScanState.RUNNING }),
+      scan({ state: ScanState.RUNNING })
     );
-    expect(await findByRole("progressbar")).toBeInTheDocument();
-    expect(queryByRole("button", { name: "Force Rescan" })).toBeNull();
+    expect(await findByRole('progressbar')).toBeInTheDocument();
+    expect(queryByRole('button', { name: 'Force Rescan' })).toBeNull();
   });
 
-  test("a failing scan start surfaces the error on the row", async () => {
+  test('a failing scan start surfaces the error on the row', async () => {
     fakeManagement({
-      listScans: () => ({ items: [], nextPageToken: "" }),
+      listScans: () => ({ items: [], nextPageToken: '' }),
       scanLocation: () => {
-        throw new ConnectError("permission denied", Code.PermissionDenied);
+        throw new ConnectError('permission denied', Code.PermissionDenied);
       },
     });
     const { findByRole, findByText } = card(undefined);
-    fireEvent.click(await findByRole("button", { name: "Force Rescan" }));
+    fireEvent.click(await findByRole('button', { name: 'Force Rescan' }));
     expect(await findByText(/permission denied/)).toBeInTheDocument();
   });
 
-  test("a failing cancel surfaces the error on the row", async () => {
+  test('a failing cancel surfaces the error on the row', async () => {
     fakeManagement({
-      listScans: () => ({ items: [], nextPageToken: "" }),
+      listScans: () => ({ items: [], nextPageToken: '' }),
       cancelScan: () => {
-        throw new ConnectError("already finished", Code.FailedPrecondition);
+        throw new ConnectError('already finished', Code.FailedPrecondition);
       },
     });
     const { findByRole, findByText } = card(scan({ state: ScanState.RUNNING }));
-    fireEvent.click(await findByRole("button", { name: "Cancel" }));
+    fireEvent.click(await findByRole('button', { name: 'Cancel' }));
     expect(await findByText(/already finished/)).toBeInTheDocument();
   });
 });

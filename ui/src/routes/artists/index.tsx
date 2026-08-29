@@ -4,7 +4,10 @@ import { Show } from 'solid-js';
 
 import InfiniteScrollSentinel from '../../components/InfiniteScrollSentinel';
 import ArtistList from '../../features/library/ArtistList';
-import { createInfiniteList, createScrollRestoration } from '../../lib/pagination';
+import {
+  createInfiniteList,
+  createScrollRestoration,
+} from '../../lib/pagination';
 import { rpc } from '../../lib/rpc/client';
 
 export default function Artists() {
@@ -12,7 +15,7 @@ export default function Artists() {
   const key = () => `artists:${JSON.stringify(params)}`;
 
   const list = createInfiniteList(key, (pageToken) =>
-    rpc.library.listArtists({ pageToken }),
+    rpc.library.listArtists({ pageToken })
   );
   const { items, loading, done, error, loadMore } = list;
   createScrollRestoration(list);
@@ -31,7 +34,10 @@ export default function Artists() {
           and run a scan.
         </p>
       </Show>
-      <InfiniteScrollSentinel onIntersect={loadMore} disabled={loading() || done()} />
+      <InfiniteScrollSentinel
+        onIntersect={loadMore}
+        disabled={loading() || done()}
+      />
       <Show when={loading()}>
         <p class="text-muted py-4 font-mono text-xs">Loading…</p>
       </Show>

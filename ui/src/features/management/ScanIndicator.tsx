@@ -5,7 +5,10 @@ import { runningScans } from '../../lib/rpc/scan-monitor';
 /** ScanIndicator shows live scan activity in the sidebar, and nothing when idle. */
 export default function ScanIndicator() {
   const dirs = () =>
-    runningScans().reduce((total, scan) => total + Number(scan.progress?.dirsSeen ?? 0), 0);
+    runningScans().reduce(
+      (total, scan) => total + Number(scan.progress?.dirsSeen ?? 0),
+      0
+    );
 
   return (
     <Show when={runningScans().length > 0}>

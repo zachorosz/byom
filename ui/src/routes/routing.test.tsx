@@ -37,7 +37,9 @@ describe('routing', () => {
 
   test('/artists renders the artist list, not the 404 page', async () => {
     const { findByRole, queryByText } = at('/artists');
-    expect(await findByRole('heading', { name: 'Artists' })).toBeInTheDocument();
+    expect(
+      await findByRole('heading', { name: 'Artists' })
+    ).toBeInTheDocument();
     expect(queryByText('Not found')).toBeNull();
   });
 });

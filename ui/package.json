@@ -9,7 +9,8 @@
     "build": "vite build",
     "serve": "vite preview",
     "test": "vitest",
-    "lint": "oxlint -c oxlint.config.mjs src"
+    "lint": "oxlint -c oxlint.config.mjs src",
+    "format": "prettier --write ."
   },
   "license": "MIT",
   "devDependencies": {
@@ -22,6 +23,7 @@
     "filesystem-routing": "0.2.1",
     "jsdom": "^25.0.1",
     "oxlint": "~1.79.0",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.9.2",
     "vite": "^8.1.5",

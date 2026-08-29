@@ -7,7 +7,7 @@ import AlbumGrid from './AlbumGrid';
 const album = (over: Partial<Album>): Album =>
   ({
     id: 'a1',
-    title: 'Kid A',
+    title: 'In Your Mind Fuzz',
     releaseDate: '2000-10-02',
     media: 'CD',
     artists: [{ artistId: 'r1', creditedName: 'Radiohead' }],
@@ -17,9 +17,11 @@ const album = (over: Partial<Album>): Album =>
 describe('<AlbumGrid />', () => {
   test('it renders a tile per album with its title', () => {
     const { getByText } = render(() => (
-      <AlbumGrid albums={[album({}), album({ id: 'a2', title: 'In Rainbows' })]} />
+      <AlbumGrid
+        albums={[album({}), album({ id: 'a2', title: 'In Rainbows' })]}
+      />
     ));
-    expect(getByText('Kid A')).toBeInTheDocument();
+    expect(getByText('In Your Mind Fuzz')).toBeInTheDocument();
     expect(getByText('In Rainbows')).toBeInTheDocument();
   });
 
@@ -50,12 +52,17 @@ describe('<AlbumGrid />', () => {
   });
 
   test('the metadata line omits media when the album has none', () => {
-    const { getByText } = render(() => <AlbumGrid albums={[album({ media: '' })]} />);
+    const { getByText } = render(() => (
+      <AlbumGrid albums={[album({ media: '' })]} />
+    ));
     expect(getByText('2000')).toBeInTheDocument();
   });
 
   test('each tile links to the album detail route', () => {
     const { getByRole } = render(() => <AlbumGrid albums={[album({})]} />);
-    expect(getByRole('link', { name: /Kid A/ })).toHaveAttribute('href', '/albums/a1');
+    expect(getByRole('link', { name: /In Your Mind Fuzz/ })).toHaveAttribute(
+      'href',
+      '/albums/a1'
+    );
   });
 });

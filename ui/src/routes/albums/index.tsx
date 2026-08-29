@@ -5,7 +5,10 @@ import { AlbumOrder } from '@proto/library/v1/library_pb';
 
 import InfiniteScrollSentinel from '../../components/InfiniteScrollSentinel';
 import AlbumGrid from '../../features/library/AlbumGrid';
-import { createInfiniteList, createScrollRestoration } from '../../lib/pagination';
+import {
+  createInfiniteList,
+  createScrollRestoration,
+} from '../../lib/pagination';
 import { rpc } from '../../lib/rpc/client';
 
 export default function Albums() {
@@ -19,7 +22,7 @@ export default function Albums() {
   // original release order. The order is bound to the page token, so it has to
   // be sent with every page.
   const list = createInfiniteList(key, (pageToken) =>
-    rpc.library.listAlbums({ pageToken, order: AlbumOrder.ARTIST }),
+    rpc.library.listAlbums({ pageToken, order: AlbumOrder.ARTIST })
   );
   const { items, loading, done, error, loadMore } = list;
   createScrollRestoration(list);
@@ -38,7 +41,10 @@ export default function Albums() {
           and run a scan.
         </p>
       </Show>
-      <InfiniteScrollSentinel onIntersect={loadMore} disabled={loading() || done()} />
+      <InfiniteScrollSentinel
+        onIntersect={loadMore}
+        disabled={loading() || done()}
+      />
       <Show when={loading()}>
         <p class="text-muted py-4 font-mono text-xs">Loading…</p>
       </Show>

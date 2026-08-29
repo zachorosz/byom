@@ -1,11 +1,11 @@
-import { Title } from "@solidjs/meta";
-import { revalidate, type RouteDefinition } from "@solidjs/router";
-import { createMemo, For, Show } from "solid-js";
+import { Title } from '@solidjs/meta';
+import { revalidate, type RouteDefinition } from '@solidjs/router';
+import { createMemo, For, Show } from 'solid-js';
 
-import AddSourceForm from "../features/management/AddSourceForm";
-import LocationCard from "../features/management/LocationCard";
-import { listLocations } from "../lib/rpc/management";
-import { runningScans } from "../lib/rpc/scan-monitor";
+import AddSourceForm from '../features/management/AddSourceForm';
+import LocationCard from '../features/management/LocationCard';
+import { listLocations } from '../lib/rpc/management';
+import { runningScans } from '../lib/rpc/scan-monitor';
 
 export const route = {
   preload: () => void listLocations(),

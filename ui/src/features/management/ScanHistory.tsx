@@ -1,8 +1,8 @@
-import { createMemo, For, Show } from "solid-js";
-import { ScanState, type Scan } from "@proto/management/v1/scan_pb";
+import { createMemo, For, Show } from 'solid-js';
+import { ScanState, type Scan } from '@proto/management/v1/scan_pb';
 
-import { relativeTime } from "../../lib/format";
-import { listScansFor } from "../../lib/rpc/management";
+import { relativeTime } from '../../lib/format';
+import { listScansFor } from '../../lib/rpc/management';
 
 interface ScanHistoryProps {
   locationId: string;
@@ -10,12 +10,12 @@ interface ScanHistoryProps {
 }
 
 const STATE_LABELS: Record<ScanState, string> = {
-  [ScanState.UNSPECIFIED]: "UNKNOWN",
-  [ScanState.RUNNING]: "RUNNING",
-  [ScanState.CANCELLING]: "CANCELLING",
-  [ScanState.DONE]: "DONE",
-  [ScanState.FAILED]: "FAILED",
-  [ScanState.ABORTED]: "ABORTED",
+  [ScanState.UNSPECIFIED]: 'UNKNOWN',
+  [ScanState.RUNNING]: 'RUNNING',
+  [ScanState.CANCELLING]: 'CANCELLING',
+  [ScanState.DONE]: 'DONE',
+  [ScanState.FAILED]: 'FAILED',
+  [ScanState.ABORTED]: 'ABORTED',
 };
 
 function ScanRow(props: { scan: Scan }) {
@@ -25,7 +25,7 @@ function ScanRow(props: { scan: Scan }) {
 
   return (
     <div class="text-faint flex flex-wrap gap-x-4 py-1 font-mono text-[10px]">
-      <span class={failed() ? "text-danger" : ""}>
+      <span class={failed() ? 'text-danger' : ''}>
         {STATE_LABELS[props.scan.state]}
       </span>
       <span>{relativeTime(props.scan.finishTime ?? props.scan.startTime)}</span>
@@ -48,7 +48,7 @@ function ScanRow(props: { scan: Scan }) {
  */
 export default function ScanHistory(props: ScanHistoryProps) {
   const scans = createMemo(
-    async () => (await listScansFor(props.locationId)).items,
+    async () => (await listScansFor(props.locationId)).items
   );
 
   return (

@@ -1,6 +1,6 @@
-import { ScanState, type Scan } from "@proto/management/v1/scan_pb";
+import { ScanState, type Scan } from '@proto/management/v1/scan_pb';
 
-import Button from "../../components/Button";
+import Button from '../../components/Button';
 
 interface ScanPanelProps {
   scan: Scan;
@@ -8,13 +8,13 @@ interface ScanPanelProps {
 }
 
 function elapsed(scan: Scan): string {
-  if (!scan.startTime) return "--:--";
+  if (!scan.startTime) return '--:--';
   const seconds = Math.max(
     0,
-    Math.floor(Date.now() / 1000 - Number(scan.startTime.seconds)),
+    Math.floor(Date.now() / 1000 - Number(scan.startTime.seconds))
   );
   const minutes = Math.floor(seconds / 60);
-  return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
+  return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
 /**
@@ -28,11 +28,11 @@ export default function ScanPanel(props: ScanPanelProps) {
     <div class="border-line border-t px-3 py-2.5">
       <div class="flex items-center justify-between">
         <span class="text-muted font-mono text-[10px]">
-          {cancelling() ? "CANCELLING" : "RUNNING"} · elapsed{" "}
+          {cancelling() ? 'CANCELLING' : 'RUNNING'} · elapsed{' '}
           <b class="text-ink font-medium">{elapsed(props.scan)}</b>
         </span>
         <Button onClick={props.onCancel} disabled={cancelling()}>
-          {cancelling() ? "Cancelling…" : "Cancel"}
+          {cancelling() ? 'Cancelling…' : 'Cancel'}
         </Button>
       </div>
       <div
@@ -43,15 +43,15 @@ export default function ScanPanel(props: ScanPanelProps) {
         <div class="bg-accent animate-shuttle h-full w-1/3" />
       </div>
       <div class="text-muted mt-2 font-mono text-[10px]">
-        dirs seen{" "}
+        dirs seen{' '}
         <b class="text-ink font-medium">
           {count(props.scan.progress?.dirsSeen)}
         </b>
-        {"  "}files seen{" "}
+        {'  '}files seen{' '}
         <b class="text-ink font-medium">
           {count(props.scan.progress?.filesSeen)}
         </b>
-        {"  "}missing{" "}
+        {'  '}missing{' '}
         <b class="text-ink font-medium">
           {count(props.scan.progress?.dirsMissing)}
         </b>

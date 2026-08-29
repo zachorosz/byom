@@ -1,4 +1,10 @@
-import { createEffect, createSignal, createStore, onSettled, untrack } from 'solid-js';
+import {
+  createEffect,
+  createSignal,
+  createStore,
+  onSettled,
+  untrack,
+} from 'solid-js';
 
 interface Page<T> {
   items: T[];
@@ -27,7 +33,13 @@ export function clearListCache(): void {
 function entryFor<T>(key: string): Entry<T> {
   let entry = cache.get(key) as Entry<T> | undefined;
   if (!entry) {
-    entry = { items: [], pageToken: '', done: false, scrollY: 0, inflight: false };
+    entry = {
+      items: [],
+      pageToken: '',
+      done: false,
+      scrollY: 0,
+      inflight: false,
+    };
     cache.set(key, entry as Entry<unknown>);
   }
   return entry;
@@ -43,7 +55,7 @@ function entryFor<T>(key: string): Entry<T> {
  */
 export function createInfiniteList<T>(
   key: () => string,
-  fetchPage: (pageToken: string) => Promise<Page<T>>,
+  fetchPage: (pageToken: string) => Promise<Page<T>>
 ) {
   const [items, setItems] = createStore<T[]>([]);
   const [loading, setLoading] = createSignal(false);

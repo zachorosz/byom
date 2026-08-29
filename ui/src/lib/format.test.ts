@@ -48,7 +48,10 @@ describe('sumDurations', () => {
 
   test('sumDurations carries nanos into whole seconds', () => {
     const half = { seconds: 0n, nanos: 600_000_000 } as Duration;
-    expect(sumDurations([half, half])).toEqual({ seconds: 1n, nanos: 200_000_000 });
+    expect(sumDurations([half, half])).toEqual({
+      seconds: 1n,
+      nanos: 200_000_000,
+    });
   });
 });
 
@@ -77,7 +80,10 @@ describe('albumFlags', () => {
 describe('relativeTime', () => {
   const now = new Date('2026-08-23T12:00:00Z');
   const ts = (iso: string): Timestamp =>
-    ({ seconds: BigInt(Math.floor(Date.parse(iso) / 1000)), nanos: 0 }) as Timestamp;
+    ({
+      seconds: BigInt(Math.floor(Date.parse(iso) / 1000)),
+      nanos: 0,
+    }) as Timestamp;
 
   test('relativeTime under a minute = got, want "just now"', () => {
     expect(relativeTime(ts('2026-08-23T11:59:30Z'), now)).toBe('just now');
