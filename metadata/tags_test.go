@@ -128,6 +128,59 @@ func TestMapCredits(t *testing.T) {
 	}
 }
 
+func TestMapAlbum(t *testing.T) {
+	tests := []struct {
+		name string
+		tags map[string][]string
+		want AlbumMetadata
+	}{
+		{
+			name: "Bootleg",
+			tags: map[string][]string{
+				"RELEASESTATUS": {"bootleg"},
+			},
+			want: AlbumMetadata{Bootleg: true},
+		},
+		{
+			name: "Compilation",
+			tags: map[string][]string{
+				"RELEASETYPE": {"Compilation"},
+			},
+			want: AlbumMetadata{Type: library.AlbumMain, Compilation: true},
+		},
+		{
+			name: "CompilationFlag",
+			tags: map[string][]string{
+				"COMPILATION": {"1"},
+			},
+			want: AlbumMetadata{Type: library.AlbumMain, Compilation: true},
+		},
+		{
+			name: "Live",
+			tags: map[string][]string{
+				"RELEASETYPE": {"LiVe"},
+			},
+			want: AlbumMetadata{Type: library.AlbumMain, Live: true},
+		},
+		{
+			name: "LiveCompilation",
+			tags: map[string][]string{
+				"RELEASETYPE": {"live", "compilation"},
+			},
+			want: AlbumMetadata{Type: library.AlbumMain, Live: true, Compilation: true},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := mapAlbum(tc.tags)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("mapAlbum(%v) mismatch (-want +got):\n%s", tc.tags, diff)
+			}
+		})
+	}
+}
+
 func TestMapAlbumArtists(t *testing.T) {
 	tests := []struct {
 		name string
@@ -165,36 +218,83 @@ func TestMapAlbumArtists(t *testing.T) {
 	}
 }
 
-func TestMapAlbumType_Mapping(t *testing.T) {
+func TestMapAlbumType(t *testing.T) {
 	tests := []struct {
-		value string
-		want  library.AlbumType
+		name string
+		tags map[string][]string
+		want library.AlbumType
 	}{
-		{value: "album", want: library.AlbumMain},
-		{value: "Album", want: library.AlbumMain}, // case-insensitive
-		{value: "live", want: library.AlbumMain},
-		{value: "compilation", want: library.AlbumMain},
-		{value: "single", want: library.AlbumSingle},
-		{value: "ep", want: library.AlbumEP},
-		{value: "extendedplay", want: library.AlbumEP},
-		{value: "other", want: library.AlbumOther},
-		{value: "demo", want: library.AlbumTypeUnknown},
+		{
+			name: "EmptyTags",
+			tags: map[string][]string{},
+			want: library.AlbumTypeUnknown,
+		},
+		{
+			name: "Album",
+			tags: map[string][]string{"RELEASETYPE": {"album"}},
+			want: library.AlbumMain,
+		},
+		{
+			name: "EP_CaseInsensitive",
+			tags: map[string][]string{"RELEASETYPE": {"eXtendedPlay"}},
+			want: library.AlbumEP,
+		},
+		{
+			name: "Single",
+			tags: map[string][]string{"RELEASETYPE": {"single"}},
+			want: library.AlbumSingle,
+		},
+		{
+			name: "Other",
+			tags: map[string][]string{"RELEASETYPE": {"other"}},
+			want: library.AlbumOther,
+		},
+		{
+			name: "Unrecognized",
+			tags: map[string][]string{"RELEASETYPE": {"notrecognized"}},
+			want: library.AlbumTypeUnknown,
+		},
+		{
+			name: "CompilationFallback",
+			tags: map[string][]string{"RELEASETYPE": {"compilation"}},
+			want: library.AlbumMain,
+		},
+		{
+			name: "LiveFallback",
+			tags: map[string][]string{"RELEASETYPE": {"live"}},
+			want: library.AlbumMain,
+		},
+		{
+			name: "LiveOverridden",
+			tags: map[string][]string{"RELEASETYPE": {"live", "single"}},
+			want: library.AlbumSingle,
+		},
+		{
+			name: "CompilationTruthy",
+			tags: map[string][]string{"COMPILATION": {"1"}},
+			want: library.AlbumMain,
+		},
+		{
+			name: "CompilationFalsy",
+			tags: map[string][]string{"COMPILATION": {"0"}},
+			want: library.AlbumTypeUnknown,
+		},
+		{
+			name: "ReleaseTypePriority",
+			tags: map[string][]string{
+				"RELEASETYPE": {"ep"},
+				"COMPILATION": {"1"},
+			},
+			want: library.AlbumEP,
+		},
 	}
-	for _, tc := range tests {
-		tags := map[string][]string{
-			"RELEASETYPE": {tc.value},
-		}
-		if got := mapAlbumType(tags); got != tc.want {
-			t.Errorf("%q = %v, want = %v", tc.value, got, tc.want)
-		}
-	}
-}
 
-func TestMapAlbumType_FirstValue(t *testing.T) {
-	tags := map[string][]string{
-		"RELEASETYPE": {"album", "ep"},
-	}
-	if got, want := mapAlbumType(tags), library.AlbumMain; got != want {
-		t.Errorf("mapAlbumType() = %v, want = %v", got, want)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := mapAlbumType(tc.tags)
+			if got != tc.want {
+				t.Errorf("mapAlbumType(%v) = %v, want %v", tc.tags, got, tc.want)
+			}
+		})
 	}
 }
