@@ -104,6 +104,9 @@ func parseDir(
 			tags = normTags(tags)
 
 			album := mapAlbum(tags)
+			if album.Title == "" {
+				album.Title = filepath.Base(filepath.Dir(fp))
+			}
 			albumArtists := mapAlbumArtists(tags)
 
 			track := ParsedTrack{
@@ -114,6 +117,9 @@ func parseDir(
 				// TODO: cuesheets
 				Duration:    audio.Duration,
 				StartOffset: 0,
+			}
+			if track.Metadata.Title == "" {
+				track.Metadata.Title = strings.TrimSuffix(filepath.Base(fp), filepath.Ext(fp))
 			}
 
 			key := albumMetaKey(album, albumArtists)
