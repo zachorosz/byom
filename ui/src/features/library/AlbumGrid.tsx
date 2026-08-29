@@ -24,10 +24,8 @@ export default function AlbumGrid(props: AlbumGridProps) {
         {(album) => (
           <li>
             <a href={`/albums/${album.id}`} class="block no-underline">
-              <Cover title={album.title} />
-              <div class="mt-2.5 font-serif text-sm leading-tight">
-                {album.title}
-              </div>
+              <Cover title={album.title} coverHash={album.coverHash} />
+              <div class="mt-2.5 font-serif text-sm leading-tight">{album.title}</div>
               <Show when={album.artists.length > 0}>
                 <div class="text-muted mt-0.5 text-xs">{credits(album)}</div>
               </Show>

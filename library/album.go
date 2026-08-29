@@ -35,8 +35,9 @@ type Album struct {
 
 	// Artists holds the album's credited artists in credited order; an
 	// artist's position is its slice index.
-	Artists []AlbumArtist
-	Images  []AlbumImage
+	Artists   []AlbumArtist
+	Images    []AlbumImage
+	CoverHash string
 
 	// GroupKey groups alternate versions (remasters, reissues) of the
 	// same album; exactly one album per group has PrimaryVersion set.

@@ -3,13 +3,17 @@ package images
 import (
 	"bytes"
 	"context"
+	"errors"
 	"image"
 	"image/color/palette"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
+	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -234,4 +238,118 @@ func TestStore_Add_DoesNotHoldLockDuringUpsert(t *testing.T) {
 
 	close(idx.release)
 	<-stuck
+}
+
+func TestStore_Open_ServesOriginal(t *testing.T) {
+	ctx := context.Background()
+	s, err := NewStore(ctx, t.TempDir(), &fakeIndex{byHash: map[string]library.Image{}})
+	if err != nil {
+		t.Fatalf("NewStore failed: %v", err)
+	}
+	data := pngBytes(t, 40, 20)
+	img, err := s.Add(ctx, bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("Add failed: %v", err)
+	}
+
+	f, mime, err := s.Open(img.ContentHash, 0)
+	if err != nil {
+		t.Fatalf("Open() returned unexpected error: %v", err)
+	}
+	defer f.Close()
+
+	if mime != "image/png" {
+		t.Errorf("Open() mime = %q, want %q", mime, "image/png")
+	}
+	got, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatalf("reading opened original failed: %v", err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Errorf("Open() returned %d bytes, want the %d original bytes", len(got), len(data))
+	}
+}
+
+func TestStore_Open_GeneratesAndCachesDerivative(t *testing.T) {
+	ctx := context.Background()
+	root := t.TempDir()
+	s, err := NewStore(ctx, root, &fakeIndex{byHash: map[string]library.Image{}})
+	if err != nil {
+		t.Fatalf("NewStore failed: %v", err)
+	}
+	img, err := s.Add(ctx, bytes.NewReader(pngBytes(t, 800, 800)))
+	if err != nil {
+		t.Fatalf("Add failed: %v", err)
+	}
+
+	f, mime, err := s.Open(img.ContentHash, 320)
+	if err != nil {
+		t.Fatalf("Open() returned unexpected error: %v", err)
+	}
+	if mime != "image/jpeg" {
+		t.Errorf("Open() derivative mime = %q, want %q", mime, "image/jpeg")
+	}
+	cfg, _, err := image.DecodeConfig(f)
+	if err != nil {
+		t.Fatalf("DecodeConfig of derivative failed: %v", err)
+	}
+	f.Close()
+	if cfg.Width != 320 || cfg.Height != 320 {
+		t.Errorf("Open(size=320) dimensions = %dx%d, want 320x320", cfg.Width, cfg.Height)
+	}
+
+	// Overwriting the cached file proves the second call reads the cache
+	// rather than regenerating from the original.
+	cached := filepath.Join(root, "images", img.ContentHash[:2], img.ContentHash+"@320.jpg")
+	if err := os.WriteFile(cached, []byte("sentinel"), 0o644); err != nil {
+		t.Fatalf("overwriting cached derivative failed: %v", err)
+	}
+
+	f2, _, err := s.Open(img.ContentHash, 320)
+	if err != nil {
+		t.Fatalf("Open() second call returned unexpected error: %v", err)
+	}
+	defer f2.Close()
+	got, err := io.ReadAll(f2)
+	if err != nil {
+		t.Fatalf("reading cached derivative failed: %v", err)
+	}
+	if string(got) != "sentinel" {
+		t.Errorf("Open() second call regenerated the derivative, want the cached bytes")
+	}
+}
+
+func TestStore_Open_RejectsBadInput(t *testing.T) {
+	ctx := context.Background()
+	s, err := NewStore(ctx, t.TempDir(), &fakeIndex{byHash: map[string]library.Image{}})
+	if err != nil {
+		t.Fatalf("NewStore failed: %v", err)
+	}
+	valid := strings.Repeat("a", 64)
+
+	tests := []struct {
+		name string
+		sha  string
+		size int
+		want error
+	}{
+		{name: "too short", sha: "abc", size: 0, want: ErrInvalidHash},
+		{name: "non hex", sha: strings.Repeat("z", 64), size: 0, want: ErrInvalidHash},
+		{name: "uppercase hex", sha: strings.Repeat("A", 64), size: 0, want: ErrInvalidHash},
+		{name: "traversal", sha: "../../../etc/passwd", size: 0, want: ErrInvalidHash},
+		{name: "unsupported size", sha: valid, size: 100, want: ErrUnsupportedSize},
+		{name: "negative size", sha: valid, size: -1, want: ErrUnsupportedSize},
+		{name: "unknown blob", sha: valid, size: 0, want: fs.ErrNotExist},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			f, _, err := s.Open(tc.sha, tc.size)
+			if f != nil {
+				f.Close()
+			}
+			if !errors.Is(err, tc.want) {
+				t.Errorf("Open(%q, %d) error = %v, want %v", tc.sha, tc.size, err, tc.want)
+			}
+		})
+	}
 }

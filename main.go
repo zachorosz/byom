@@ -87,12 +87,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv := &http.Server{
-		Addr: *addr,
-		Handler: rpc.NewHandler(logger,
-			rpc.NewLibraryServer(libraryStore),
-			rpc.NewManagementServer(scanner, locations)),
-	}
+	// Connect procedure paths live at the root, so images take a prefix
+	// and the RPC handler keeps everything else.
+	mux := http.NewServeMux()
+	mux.Handle("/images/", images.NewHandler(imageStore))
+	mux.Handle("/", rpc.NewHandler(logger,
+		rpc.NewLibraryServer(libraryStore),
+		rpc.NewManagementServer(scanner, locations)))
+
+	srv := &http.Server{Addr: *addr, Handler: mux}
 	serveErr := make(chan error, 1)
 	go func() {
 		logger.Info("rpc server listening", slog.String("addr", *addr))
