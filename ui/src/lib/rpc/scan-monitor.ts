@@ -1,9 +1,9 @@
-import { revalidate } from '@solidjs/router';
-import { createSignal } from 'solid-js';
-import type { Scan } from '@proto/management/v1/scan_pb';
+import { revalidate } from "@solidjs/router";
+import { createSignal } from "solid-js";
+import type { Scan } from "@proto/management/v1/scan_pb";
 
-import { invalidateLibrary } from './invalidate';
-import { listRunningScans } from './management';
+import { invalidateLibrary } from "./invalidate";
+import { listRunningScans } from "./management";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -15,7 +15,6 @@ let stopped = true;
 
 async function poll(): Promise<void> {
   if (stopped) return;
-  // Scans are slow and SMB-bound; a stale cache entry would freeze the counters.
   revalidate(listRunningScans.key, true);
   const previous = runningScans();
   const response = await listRunningScans();
@@ -26,7 +25,8 @@ async function poll(): Promise<void> {
   // A scan leaving the running set means the library changed underneath.
   if (previous.length > 0 && response.items.length === 0) invalidateLibrary();
 
-  if (response.items.length > 0) timer = setTimeout(() => void poll(), POLL_INTERVAL_MS);
+  if (response.items.length > 0)
+    timer = setTimeout(() => void poll(), POLL_INTERVAL_MS);
 }
 
 /** pokeScanMonitor polls immediately, for use right after starting or cancelling a scan. */
@@ -37,17 +37,14 @@ export function pokeScanMonitor(): void {
 }
 
 function onVisibility(): void {
-  if (document.visibilityState === 'visible') pokeScanMonitor();
+  if (document.visibilityState === "visible") pokeScanMonitor();
   else clearTimeout(timer);
 }
 
-// Module-level rather than a closure returned by startScanMonitor: an inline
-// closure here reads as an untracked reactive read to the linter, since it
-// sits alongside the visibilitychange listener above.
 function stopMonitor(): void {
   stopped = true;
   clearTimeout(timer);
-  document.removeEventListener('visibilitychange', onVisibility);
+  document.removeEventListener("visibilitychange", onVisibility);
 }
 
 /**
@@ -58,7 +55,7 @@ function stopMonitor(): void {
  */
 export function startScanMonitor(): () => void {
   stopped = false;
-  document.addEventListener('visibilitychange', onVisibility);
+  document.addEventListener("visibilitychange", onVisibility);
   void poll();
   return stopMonitor;
 }

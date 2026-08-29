@@ -1,16 +1,12 @@
-import { For } from 'solid-js';
-import type { Artist } from '@proto/library/v1/artist_pb';
+import { For } from "solid-js";
+import type { Artist } from "@proto/library/v1/artist_pb";
 
 interface ArtistListProps {
-  // readonly: createInfiniteList's items come from a store, which is readonly.
   artists: readonly Artist[];
 }
 
 /**
  * ArtistList renders artists as an alphabetical list.
- *
- * Artist carries only an id and a name — no image, no album count — so a list
- * is honest where a grid of empty tiles would not be. Order comes from the RPC.
  */
 export default function ArtistList(props: ArtistListProps) {
   return (
