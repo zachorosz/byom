@@ -26,7 +26,7 @@ interface AlbumSectionProps {
 export default function AlbumSection(props: AlbumSectionProps) {
   const { items, loading, done, error, loadMore } = createInfiniteList<Album>(
     () => props.listKey,
-    (pageToken) => props.fetchPage(pageToken),
+    (pageToken) => props.fetchPage(pageToken)
   );
 
   // An empty section is absent, not empty: an artist with no bootlegs should

@@ -15,9 +15,18 @@ describe('<App />', () => {
 
   test('the sidebar links to the two library sections and settings', () => {
     const { getByRole } = render(() => <App />);
-    expect(getByRole('link', { name: 'Artists' })).toHaveAttribute('href', '/artists');
-    expect(getByRole('link', { name: 'Albums' })).toHaveAttribute('href', '/albums');
-    expect(getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+    expect(getByRole('link', { name: 'Artists' })).toHaveAttribute(
+      'href',
+      '/artists'
+    );
+    expect(getByRole('link', { name: 'Albums' })).toHaveAttribute(
+      'href',
+      '/albums'
+    );
+    expect(getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/settings'
+    );
   });
 
   test('the sidebar groups the library nav under a labelled heading', () => {

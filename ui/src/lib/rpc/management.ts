@@ -1,25 +1,25 @@
-import { query } from "@solidjs/router";
-import { ScanState } from "@proto/management/v1/scan_pb";
+import { query } from '@solidjs/router';
+import { ScanState } from '@proto/management/v1/scan_pb';
 
-import { rpc } from "./client";
+import { rpc } from './client';
 
 /** listLocations reads every configured library source. */
 export const listLocations = query(
   () => rpc.management.listLocations({ pageSize: 100 }),
-  "locations",
+  'locations'
 );
 
 /** listRunningScans reads the scans currently in flight. Polled by the scan monitor. */
 export const listRunningScans = query(
   () => rpc.management.listScans({ state: ScanState.RUNNING, pageSize: 50 }),
-  "running-scans",
+  'running-scans'
 );
 
 /** listScansFor reads a location's scan history, most recent first. */
 export const listScansFor = query(
   (locationId: string) =>
     rpc.management.listScans({ locationId, pageSize: 20 }),
-  "scans",
+  'scans'
 );
 
 /** scanLocation starts a scan and returns it. */

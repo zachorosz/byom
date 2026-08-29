@@ -9,10 +9,10 @@ describe('library queries', () => {
 
   test('getAlbum returns the album from the service', async () => {
     fakeLibrary({
-      getAlbum: () => ({ album: { id: 'a1', title: 'Kid A' } }),
+      getAlbum: () => ({ album: { id: 'a1', title: 'In Your Mind Fuzz' } }),
     });
     const response = await getAlbum('a1');
-    expect(response.album?.title).toBe('Kid A');
+    expect(response.album?.title).toBe('In Your Mind Fuzz');
   });
 
   test('getAlbum caches by id, so a repeat call does not hit the service', async () => {
@@ -20,7 +20,7 @@ describe('library queries', () => {
     fakeLibrary({
       getAlbum: () => {
         calls++;
-        return { album: { id: 'a1', title: 'Kid A' } };
+        return { album: { id: 'a1', title: 'In Your Mind Fuzz' } };
       },
     });
     await getAlbum('a1');
@@ -33,7 +33,7 @@ describe('library queries', () => {
     fakeLibrary({
       getAlbum: () => {
         calls++;
-        return { album: { id: 'a1', title: 'Kid A' } };
+        return { album: { id: 'a1', title: 'In Your Mind Fuzz' } };
       },
     });
     await getAlbum('a1');

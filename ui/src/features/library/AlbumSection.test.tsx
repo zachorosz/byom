@@ -11,7 +11,9 @@ const album = (id: string, title: string): Album =>
     title,
     releaseDate: '2017-11-17',
     media: 'Digital',
-    artists: [{ artistId: 'r1', creditedName: 'King Gizzard & the Lizard Wizard' }],
+    artists: [
+      { artistId: 'r1', creditedName: 'King Gizzard & the Lizard Wizard' },
+    ],
   }) as Album;
 
 // Each test gets its own key: the page cache is module-level and would
@@ -45,7 +47,11 @@ describe('<AlbumSection />', () => {
   test('it renders nothing when the section has no albums', async () => {
     const listKey = nextKey();
     const { container } = render(() => (
-      <AlbumSection heading="Bootlegs" listKey={listKey} fetchPage={onePage()} />
+      <AlbumSection
+        heading="Bootlegs"
+        listKey={listKey}
+        fetchPage={onePage()}
+      />
     ));
 
     await waitFor(() => expect(container).toBeEmptyDOMElement());
@@ -61,7 +67,9 @@ describe('<AlbumSection />', () => {
       <AlbumSection heading="Albums" listKey={listKey} fetchPage={fetchPage} />
     ));
 
-    expect(await findByRole('button', { name: /load more/i })).toBeInTheDocument();
+    expect(
+      await findByRole('button', { name: /load more/i })
+    ).toBeInTheDocument();
   });
 
   test('it hides Load more once the last page arrives', async () => {
@@ -75,7 +83,9 @@ describe('<AlbumSection />', () => {
     ));
     await findByText('Nonagon Infinity');
 
-    expect(queryByRole('button', { name: /load more/i })).not.toBeInTheDocument();
+    expect(
+      queryByRole('button', { name: /load more/i })
+    ).not.toBeInTheDocument();
   });
 
   test('Load more appends the next page', async () => {

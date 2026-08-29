@@ -12,7 +12,12 @@ const scan = (state: ScanState) => ({
   locationId: 'l1',
   state,
   error: '',
-  progress: { dirsSeen: 10n, dirsMissing: 0n, filesSeen: 100n, filesMissing: 0n },
+  progress: {
+    dirsSeen: 10n,
+    dirsMissing: 0n,
+    filesSeen: 100n,
+    filesMissing: 0n,
+  },
 });
 
 async function tick(ms: number) {
@@ -29,7 +34,10 @@ describe('scan monitor', () => {
 
   test('it polls once on start and exposes the running scans', async () => {
     fakeManagement({
-      listScans: () => ({ items: [scan(ScanState.RUNNING)], nextPageToken: '' }),
+      listScans: () => ({
+        items: [scan(ScanState.RUNNING)],
+        nextPageToken: '',
+      }),
     });
     const stop = startScanMonitor();
     await tick(0);
@@ -79,7 +87,7 @@ describe('scan monitor', () => {
       library: {
         getAlbum: () => {
           albumCalls++;
-          return { album: { id: 'a1', title: 'Kid A' } };
+          return { album: { id: 'a1', title: 'In Your Mind Fuzz' } };
         },
       },
       management: {

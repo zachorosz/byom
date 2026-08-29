@@ -1,20 +1,20 @@
-import { For, Show } from "solid-js";
-import type { Album } from "@proto/library/v1/album_pb";
+import { For, Show } from 'solid-js';
+import type { Album } from '@proto/library/v1/album_pb';
 
-import Cover from "../../components/Cover";
+import Cover from '../../components/Cover';
 
 interface AlbumGridProps {
   albums: readonly Album[];
 }
 
 function credits(album: Album): string {
-  return album.artists.map((a) => a.creditedName).join(", ");
+  return album.artists.map((a) => a.creditedName).join(', ');
 }
 
 function meta(album: Album): string {
   return [album.originalReleaseDate || album.releaseDate, album.media]
     .filter(Boolean)
-    .join(" · ");
+    .join(' · ');
 }
 
 /** AlbumGrid renders albums as a responsive grid of cover tiles. */

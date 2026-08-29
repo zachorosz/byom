@@ -22,7 +22,8 @@ export default function ReleaseHeader(props: ReleaseHeaderProps) {
       .filter(Boolean)
       .join(' · ');
 
-  const credits = () => props.album.artists.map((a) => a.creditedName).join(', ');
+  const credits = () =>
+    props.album.artists.map((a) => a.creditedName).join(', ');
 
   return (
     <header class="mb-8 flex flex-col gap-6 sm:flex-row">
@@ -45,7 +46,9 @@ export default function ReleaseHeader(props: ReleaseHeaderProps) {
           <Show when={albumTypeLabel(props.album.albumType)}>
             {(label) => <Chip>{label()}</Chip>}
           </Show>
-          <For each={albumFlags(props.album)}>{(flag) => <Chip accent>{flag}</Chip>}</For>
+          <For each={albumFlags(props.album)}>
+            {(flag) => <Chip accent>{flag}</Chip>}
+          </For>
           <Show when={props.album.version}>{(v) => <Chip>{v()}</Chip>}</Show>
           <Show when={props.album.primaryVersion}>
             <Chip>PRIMARY VERSION</Chip>

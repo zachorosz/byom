@@ -1,12 +1,12 @@
-import { Title } from "@solidjs/meta";
-import type { RouteDefinition, RouteProps } from "@solidjs/router";
-import { createMemo, For, Show } from "solid-js";
-import { AlbumType } from "@proto/library/v1/album_pb";
-import { AlbumOrder, BootlegFilter } from "@proto/library/v1/library_pb";
+import { Title } from '@solidjs/meta';
+import type { RouteDefinition, RouteProps } from '@solidjs/router';
+import { createMemo, For, Show } from 'solid-js';
+import { AlbumType } from '@proto/library/v1/album_pb';
+import { AlbumOrder, BootlegFilter } from '@proto/library/v1/library_pb';
 
-import AlbumSection from "../../features/library/AlbumSection";
-import { rpc } from "../../lib/rpc/client";
-import { getArtist } from "../../lib/rpc/library";
+import AlbumSection from '../../features/library/AlbumSection';
+import { rpc } from '../../lib/rpc/client';
+import { getArtist } from '../../lib/rpc/library';
 
 export const route = {
   preload: ({ params }) => void getArtist(params.id!),
@@ -23,32 +23,32 @@ interface Section {
 // Other; without that they would belong to no section at all.
 const SECTIONS: Section[] = [
   {
-    heading: "Albums",
+    heading: 'Albums',
     albumTypes: [AlbumType.MAIN, AlbumType.UNSPECIFIED],
     bootlegs: BootlegFilter.EXCLUDE,
   },
   {
-    heading: "Singles & EPs",
+    heading: 'Singles & EPs',
     albumTypes: [AlbumType.SINGLE, AlbumType.EP],
     bootlegs: BootlegFilter.EXCLUDE,
   },
   {
-    heading: "Other",
+    heading: 'Other',
     albumTypes: [AlbumType.OTHER],
     bootlegs: BootlegFilter.EXCLUDE,
   },
   {
-    heading: "Bootlegs",
+    heading: 'Bootlegs',
     albumTypes: [],
     bootlegs: BootlegFilter.ONLY,
   },
 ];
 
-export default function ArtistDetail(props: RouteProps<"/artists/:id">) {
+export default function ArtistDetail(props: RouteProps<'/artists/:id'>) {
   // Await: the query returns a Promise, so reading `.artist` off it directly
   // yields undefined.
   const artist = createMemo(
-    async () => (await getArtist(props.params.id)).artist,
+    async () => (await getArtist(props.params.id)).artist
   );
 
   return (

@@ -22,7 +22,8 @@ function meta(album: Album): string {
 /** VersionList renders the releases sharing an album's version group. */
 export default function VersionList(props: VersionListProps) {
   // A group of one is just the album already on screen.
-  const versions = () => ((props.versions?.length ?? 0) > 1 ? props.versions : undefined);
+  const versions = () =>
+    (props.versions?.length ?? 0) > 1 ? props.versions : undefined;
 
   return (
     <Show when={versions()}>
@@ -35,14 +36,19 @@ export default function VersionList(props: VersionListProps) {
             <For each={items()}>
               {(album) => (
                 <li
-                  aria-current={album.id === props.currentId ? 'true' : undefined}
+                  aria-current={
+                    album.id === props.currentId ? 'true' : undefined
+                  }
                   class="flex items-baseline gap-3 py-2"
                 >
                   <Show
                     when={album.id !== props.currentId}
                     fallback={<VersionSummary album={album} />}
                   >
-                    <a href={`/albums/${album.id}`} class="flex flex-1 gap-3 no-underline">
+                    <a
+                      href={`/albums/${album.id}`}
+                      class="flex flex-1 gap-3 no-underline"
+                    >
                       <VersionSummary album={album} />
                     </a>
                   </Show>
@@ -63,7 +69,9 @@ function VersionSummary(props: { album: Album }) {
   return (
     <>
       <span class="flex-1 font-serif text-sm">{label(props.album)}</span>
-      <span class="text-faint font-mono text-[9px] tracking-[0.05em]">{meta(props.album)}</span>
+      <span class="text-faint font-mono text-[9px] tracking-[0.05em]">
+        {meta(props.album)}
+      </span>
     </>
   );
 }

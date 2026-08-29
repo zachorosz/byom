@@ -1,9 +1,9 @@
-import { revalidate } from "@solidjs/router";
-import { createSignal } from "solid-js";
-import type { Scan } from "@proto/management/v1/scan_pb";
+import { revalidate } from '@solidjs/router';
+import { createSignal } from 'solid-js';
+import type { Scan } from '@proto/management/v1/scan_pb';
 
-import { invalidateLibrary } from "./invalidate";
-import { listRunningScans } from "./management";
+import { invalidateLibrary } from './invalidate';
+import { listRunningScans } from './management';
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -37,14 +37,14 @@ export function pokeScanMonitor(): void {
 }
 
 function onVisibility(): void {
-  if (document.visibilityState === "visible") pokeScanMonitor();
+  if (document.visibilityState === 'visible') pokeScanMonitor();
   else clearTimeout(timer);
 }
 
 function stopMonitor(): void {
   stopped = true;
   clearTimeout(timer);
-  document.removeEventListener("visibilitychange", onVisibility);
+  document.removeEventListener('visibilitychange', onVisibility);
 }
 
 /**
@@ -55,7 +55,7 @@ function stopMonitor(): void {
  */
 export function startScanMonitor(): () => void {
   stopped = false;
-  document.addEventListener("visibilitychange", onVisibility);
+  document.addEventListener('visibilitychange', onVisibility);
   void poll();
   return stopMonitor;
 }

@@ -21,8 +21,12 @@ export default function AlbumDetail(props: RouteProps<'/albums/:id'>) {
   // The memo must await: a query returns a Promise, so reading `.album` off it
   // directly yields undefined and the page renders empty forever.
   const album = createMemo(async () => (await getAlbum(props.params.id)).album);
-  const tracks = createMemo(async () => (await listTracks(props.params.id)).items);
-  const versions = createMemo(async () => (await listAlbumVersions(props.params.id)).items);
+  const tracks = createMemo(
+    async () => (await listTracks(props.params.id)).items
+  );
+  const versions = createMemo(
+    async () => (await listAlbumVersions(props.params.id)).items
+  );
 
   return (
     <main class="px-6 py-8">
@@ -39,7 +43,9 @@ export default function AlbumDetail(props: RouteProps<'/albums/:id'>) {
             {/* Its own boundary: the header depends only on GetAlbum, so a slow
                 ListTracks must not hold the whole page on the shell fallback. */}
             <Loading
-              fallback={<p class="text-muted py-4 font-mono text-xs">Loading tracks…</p>}
+              fallback={
+                <p class="text-muted py-4 font-mono text-xs">Loading tracks…</p>
+              }
             >
               <p class="text-faint mb-3 font-mono text-[10px] tracking-[0.05em]">
                 {tracks().length} TRACKS ·{' '}

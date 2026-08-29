@@ -34,7 +34,10 @@ function Shell(props: ParentProps) {
       {/* sticky + self-start keeps the sidebar in view while the window scrolls.
           Scrolling stays on the window because pagination restores window.scrollY. */}
       <nav class="bg-panel border-line sticky top-0 flex h-screen w-44 flex-none flex-col self-start border-r p-3">
-        <a href={paths()} class="mb-5 px-2 font-serif text-xl italic no-underline">
+        <a
+          href={paths()}
+          class="mb-5 px-2 font-serif text-xl italic no-underline"
+        >
           byom
         </a>
         <div class="text-faint px-2 pb-1.5 font-mono text-[8px] tracking-[0.16em] uppercase">
@@ -56,8 +59,12 @@ function Shell(props: ParentProps) {
       {/* Errored wraps Loading so a rejected async read renders the error UI
           rather than hanging on the loading fallback forever. */}
       <div class="flex-1 overflow-x-hidden">
-        <Errored fallback={(error, reset) => <Failed error={error} reset={reset} />}>
-          <Loading fallback={<main class="text-muted px-6 py-12">Loading…</main>}>
+        <Errored
+          fallback={(error, reset) => <Failed error={error} reset={reset} />}
+        >
+          <Loading
+            fallback={<main class="text-muted px-6 py-12">Loading…</main>}
+          >
             {props.children}
           </Loading>
         </Errored>

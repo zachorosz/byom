@@ -1,12 +1,12 @@
-import { createSignal, Loading, Show } from "solid-js";
-import type { Location } from "@proto/management/v1/location_pb";
-import type { Scan } from "@proto/management/v1/scan_pb";
+import { createSignal, Loading, Show } from 'solid-js';
+import type { Location } from '@proto/management/v1/location_pb';
+import type { Scan } from '@proto/management/v1/scan_pb';
 
-import Button from "../../components/Button";
-import { cancelScan, scanLocation } from "../../lib/rpc/management";
-import { pokeScanMonitor } from "../../lib/rpc/scan-monitor";
-import ScanHistory from "./ScanHistory";
-import ScanPanel from "./ScanPanel";
+import Button from '../../components/Button';
+import { cancelScan, scanLocation } from '../../lib/rpc/management';
+import { pokeScanMonitor } from '../../lib/rpc/scan-monitor';
+import ScanHistory from './ScanHistory';
+import ScanPanel from './ScanPanel';
 
 interface LocationCardProps {
   location: Location;
@@ -16,10 +16,10 @@ interface LocationCardProps {
 /** LocationCard renders one library source: its path, scan action, and history. */
 export default function LocationCard(props: LocationCardProps) {
   const [showHistory, setShowHistory] = createSignal(false);
-  const [error, setError] = createSignal("");
+  const [error, setError] = createSignal('');
 
   async function start() {
-    setError("");
+    setError('');
     try {
       await scanLocation(props.location.id, true);
       pokeScanMonitor();
@@ -30,7 +30,7 @@ export default function LocationCard(props: LocationCardProps) {
 
   async function stop() {
     if (!props.running) return;
-    setError("");
+    setError('');
     try {
       await cancelScan(props.running.id);
       pokeScanMonitor();

@@ -21,26 +21,31 @@ export function fakeServices(impls: FakeServices): void {
   setTransport(
     createRouterTransport(({ service }) => {
       if (impls.library) {
-        service(LibraryService, impls.library as ServiceImpl<typeof LibraryService>);
+        service(
+          LibraryService,
+          impls.library as ServiceImpl<typeof LibraryService>
+        );
       }
       if (impls.management) {
         service(
           ManagementService,
-          impls.management as ServiceImpl<typeof ManagementService>,
+          impls.management as ServiceImpl<typeof ManagementService>
         );
       }
-    }),
+    })
   );
 }
 
 /** fakeLibrary installs only a LibraryService. Shorthand for fakeServices({ library }). */
-export function fakeLibrary(library: Partial<ServiceImpl<typeof LibraryService>>): void {
+export function fakeLibrary(
+  library: Partial<ServiceImpl<typeof LibraryService>>
+): void {
   fakeServices({ library });
 }
 
 /** fakeManagement installs only a ManagementService. */
 export function fakeManagement(
-  management: Partial<ServiceImpl<typeof ManagementService>>,
+  management: Partial<ServiceImpl<typeof ManagementService>>
 ): void {
   fakeServices({ management });
 }

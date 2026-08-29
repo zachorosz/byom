@@ -20,7 +20,7 @@ describe('<ArtistList />', () => {
     const { getByRole } = render(() => <ArtistList artists={artists} />);
     expect(getByRole('link', { name: 'Radiohead' })).toHaveAttribute(
       'href',
-      '/artists/r1',
+      '/artists/r1'
     );
   });
 
