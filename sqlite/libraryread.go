@@ -83,13 +83,13 @@ func (s *LibraryStore) Artists(ctx context.Context, token string, limit int) ([]
 
 const albumColumns = `a.id, a.dir_id, a.title, a.album_type, a.release_date,
 	a.original_release_date, a.release_country, a.bootleg, a.compilation,
-	a.live, a.group_key, a.version, a.primary_version`
+	a.live, a.group_key, a.version, a.primary_version, COALESCE(img.content_hash, '') AS cover_hash`
 
-func scanAlbum(dst func(...any) error) (library.Album, error) {
+func scanAlbum(scanFn func(...any) error) (library.Album, error) {
 	var al library.Album
-	err := dst(&al.ID, &al.DirID, &al.Title, &al.Type, &al.ReleaseDate,
+	err := scanFn(&al.ID, &al.DirID, &al.Title, &al.Type, &al.ReleaseDate,
 		&al.OriginalReleaseDate, &al.ReleaseCountry, &al.Bootleg, &al.Compilation,
-		&al.Live, &al.GroupKey, &al.Version, &al.PrimaryVersion)
+		&al.Live, &al.GroupKey, &al.Version, &al.PrimaryVersion, &al.CoverHash)
 	return al, err
 }
 
@@ -97,7 +97,11 @@ func scanAlbum(dst func(...any) error) (library.Album, error) {
 // library.ErrNotFound.
 func (s *LibraryStore) Album(ctx context.Context, id uuid.UUID) (library.Album, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT `+albumColumns+` FROM albums a WHERE a.id = ?`, id)
+		`SELECT `+albumColumns+`
+		 FROM albums AS a
+		 LEFT JOIN album_images AS cov ON a.id = cov.album_id AND cov.set_cover = 1
+		 LEFT JOIN images AS img ON img.id = cov.image_id
+		 WHERE a.id = ?`, id)
 	al, err := scanAlbum(row.Scan)
 	if errors.Is(err, sql.ErrNoRows) {
 		return library.Album{}, fmt.Errorf("album %s: %w", id, library.ErrNotFound)
@@ -121,7 +125,11 @@ func (s *LibraryStore) Album(ctx context.Context, id uuid.UUID) (library.Album, 
 func (s *LibraryStore) Albums(ctx context.Context, artistID uuid.UUID, token string, limit int) ([]library.Album, string, error) {
 	limit = page.Size(limit)
 
-	q := `SELECT ` + albumColumns + ` FROM albums a`
+	q := `SELECT ` + albumColumns + `
+		FROM albums AS a
+		LEFT JOIN album_images AS cov ON a.id = cov.album_id AND cov.set_cover = 1
+		LEFT JOIN images AS img ON img.id = cov.image_id
+	`
 	var args []any
 	var where []string
 	if artistID != uuid.Nil {

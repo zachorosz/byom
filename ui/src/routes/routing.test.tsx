@@ -23,6 +23,12 @@ describe('routing', () => {
     });
   });
 
+  test('/ redirects to the album grid', async () => {
+    const { findByRole } = at('/');
+    expect(await findByRole('heading', { name: 'Albums' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/albums');
+  });
+
   test('/albums renders the album list, not the 404 page', async () => {
     const { findByRole, queryByText } = at('/albums');
     expect(await findByRole('heading', { name: 'Albums' })).toBeInTheDocument();

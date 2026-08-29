@@ -43,6 +43,7 @@ func albumProto(al library.Album) *libraryv1.Album {
 		GroupKey:            al.GroupKey,
 		Version:             al.Version,
 		PrimaryVersion:      al.PrimaryVersion,
+		CoverHash:           al.CoverHash,
 	}
 	for _, aa := range al.Artists {
 		pb.Artists = append(pb.Artists, &libraryv1.AlbumArtist{

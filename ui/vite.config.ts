@@ -32,6 +32,8 @@ export default defineConfig({
       // the browser same-origin against the Go server in dev, matching
       // how the built SPA will be served in production.
       '^/(library|management)\\.v1\\.': 'http://localhost:8080',
+      // Cover artwork is served by the Go binary alongside the RPC handlers.
+      '/images': 'http://localhost:8080',
     },
   },
   test: {

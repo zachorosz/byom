@@ -92,6 +92,7 @@ type Album struct {
 	Version             string                 `protobuf:"bytes,18,opt,name=version,proto3" json:"version,omitempty"`
 	PrimaryVersion      bool                   `protobuf:"varint,19,opt,name=primary_version,json=primaryVersion,proto3" json:"primary_version,omitempty"`
 	Artists             []*AlbumArtist         `protobuf:"bytes,20,rep,name=artists,proto3" json:"artists,omitempty"`
+	CoverHash           string                 `protobuf:"bytes,21,opt,name=cover_hash,json=coverHash,proto3" json:"cover_hash,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -224,6 +225,13 @@ func (x *Album) GetArtists() []*AlbumArtist {
 	return nil
 }
 
+func (x *Album) GetCoverHash() string {
+	if x != nil {
+		return x.CoverHash
+	}
+	return ""
+}
+
 type AlbumArtist struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ArtistId      string                 `protobuf:"bytes,1,opt,name=artist_id,json=artistId,proto3" json:"artist_id,omitempty"`
@@ -281,7 +289,7 @@ var File_library_v1_album_proto protoreflect.FileDescriptor
 const file_library_v1_album_proto_rawDesc = "" +
 	"\n" +
 	"\x16library/v1/album.proto\x12\n" +
-	"library.v1\"\xdc\x03\n" +
+	"library.v1\"\xfb\x03\n" +
 	"\x05Album\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x124\n" +
@@ -297,7 +305,9 @@ const file_library_v1_album_proto_rawDesc = "" +
 	"\tgroup_key\x18\x11 \x01(\tR\bgroupKey\x12\x18\n" +
 	"\aversion\x18\x12 \x01(\tR\aversion\x12'\n" +
 	"\x0fprimary_version\x18\x13 \x01(\bR\x0eprimaryVersion\x121\n" +
-	"\aartists\x18\x14 \x03(\v2\x17.library.v1.AlbumArtistR\aartists\"O\n" +
+	"\aartists\x18\x14 \x03(\v2\x17.library.v1.AlbumArtistR\aartists\x12\x1d\n" +
+	"\n" +
+	"cover_hash\x18\x15 \x01(\tR\tcoverHash\"O\n" +
 	"\vAlbumArtist\x12\x1b\n" +
 	"\tartist_id\x18\x01 \x01(\tR\bartistId\x12#\n" +
 	"\rcredited_name\x18\x02 \x01(\tR\fcreditedName*|\n" +

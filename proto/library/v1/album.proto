@@ -29,6 +29,7 @@ message Album {
   bool primary_version = 19;
 
   repeated AlbumArtist artists = 20;
+  string cover_hash = 21;
 }
 
 message AlbumArtist {
